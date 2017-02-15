@@ -45,12 +45,10 @@ public class RestUtilInit {
 			}
 		};
 
-		registerBean("handler", handler.getClass());
-
 		for (Class<?> cls : requests) {
 			Object demo2 = Proxy.newProxyInstance(this.getClass().getClassLoader(), new Class<?>[] { cls }, handler);
 
-			registerBean(cls.getName(), demo2.getClass());
+			registerBean(cls.getName(), demo2);
 		}
 
 	}
@@ -61,14 +59,13 @@ public class RestUtilInit {
 		GET annotation = method.getAnnotation(GET.class);
 
 		String url = annotation.value();
-		
+
 		info.setUrl(url);
-		
-		
+
 		return info;
 	}
 
-	public void registerBean(String name, Class<?> beanClass) {
+	public void registerBean2(String name, Class<?> beanClass) {
 
 		// 获取BeanFactory
 		DefaultListableBeanFactory defaultListableBeanFactory = (DefaultListableBeanFactory) ctx
@@ -81,6 +78,16 @@ public class RestUtilInit {
 
 		// 动态注册bean.
 		defaultListableBeanFactory.registerBeanDefinition(name, beanDefinitionBuilder.getBeanDefinition());
+	}
+
+	public void registerBean(String name, Object obj) {
+
+		// 获取BeanFactory
+		DefaultListableBeanFactory defaultListableBeanFactory = (DefaultListableBeanFactory) ctx
+				.getAutowireCapableBeanFactory();
+
+		// 动态注册bean.
+		defaultListableBeanFactory.registerSingleton(name, obj);
 	}
 
 }
