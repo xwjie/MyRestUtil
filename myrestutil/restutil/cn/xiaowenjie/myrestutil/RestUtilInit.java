@@ -11,7 +11,6 @@ import javax.annotation.PostConstruct;
 
 import org.reflections.Reflections;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.support.BeanDefinitionBuilder;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
@@ -38,25 +37,24 @@ public class RestUtilInit {
 
 		Set<Class<?>> requests = new Reflections("cn.xiaowenjie").getTypesAnnotatedWith(Rest.class);
 
-		System.out.println(requests);
-		System.out.println("==============n\n\n\n");
-
 		for (Class<?> cls : requests) {
+			System.out.println("create proxy for class:" + cls);
+
+			// rest服务器相关信息
 			final RestInfo restInfo = extractRestInfo(cls);
 
 			InvocationHandler handler = new InvocationHandler() {
 				@Override
 				public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-
 					RequestInfo request = extractRequestInfo(method, args);
-
 					return requestHandle.handle(restInfo, request);
 				}
 			};
 
-			Object demo2 = Proxy.newProxyInstance(this.getClass().getClassLoader(), new Class<?>[] { cls }, handler);
+			// 创建动态代理类
+			Object proxy = Proxy.newProxyInstance(this.getClass().getClassLoader(), new Class<?>[] { cls }, handler);
 
-			registerBean(cls.getName(), demo2);
+			registerBean(cls.getName(), proxy);
 		}
 
 	}
@@ -66,9 +64,8 @@ public class RestUtilInit {
 
 		Rest annotation = cls.getAnnotation(Rest.class);
 
-		String url = annotation.value();
-
-		restinfo.setHost(url);
+		String host = annotation.value();
+		restinfo.setHost(host);
 
 		return restinfo;
 	}
@@ -76,11 +73,13 @@ public class RestUtilInit {
 	protected RequestInfo extractRequestInfo(Method method, Object[] args) {
 		RequestInfo info = new RequestInfo();
 
+		// TODO 目前只写了get请求，需要支持post等在这里增加
 		GET annotation = method.getAnnotation(GET.class);
 
 		// url
 		String url = annotation.value();
 
+		// 没有配置路径取函数名称
 		if (StringUtils.isEmpty(url)) {
 			url = "/" + method.getName();
 		}
@@ -116,21 +115,6 @@ public class RestUtilInit {
 		}
 
 		return params;
-	}
-
-	public void registerBean2(String name, Class<?> beanClass) {
-
-		// 获取BeanFactory
-		DefaultListableBeanFactory defaultListableBeanFactory = (DefaultListableBeanFactory) ctx
-				.getAutowireCapableBeanFactory();
-
-		// 创建bean信息.
-		BeanDefinitionBuilder beanDefinitionBuilder = BeanDefinitionBuilder.genericBeanDefinition(beanClass);
-
-		// beanDefinitionBuilder.addPropertyValue("name","张三");
-
-		// 动态注册bean.
-		defaultListableBeanFactory.registerBeanDefinition(name, beanDefinitionBuilder.getBeanDefinition());
 	}
 
 	public void registerBean(String name, Object obj) {

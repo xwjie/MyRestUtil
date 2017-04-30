@@ -4,8 +4,6 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import javax.annotation.PostConstruct;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
@@ -20,11 +18,6 @@ public class RestTemplateRequestHandle implements IRequestHandle {
 	@Autowired
 	RestTemplate rest;
 
-	@PostConstruct
-	public void init() {
-		System.out.println("\n\n\n-----RestTemplateRequestHandle.init()---------\n\n\n");
-	}
-
 	@Override
 	public Object handle(RestInfo restInfo, RequestInfo request) {
 		System.out.println("\n\n handle request,  restInfo=" + restInfo);
@@ -32,6 +25,9 @@ public class RestTemplateRequestHandle implements IRequestHandle {
 
 		String url = extractUrl(restInfo, request);
 		System.out.println(" handle url:" + url);
+
+		//TODO 目前只写了get请求，需要支持post等在这里增加
+		//TODO 需要在这里增加异常处理，如登录失败，链接不上
 
 		Object result = rest.getForObject(url, request.getReturnType());
 

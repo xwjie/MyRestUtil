@@ -38,7 +38,8 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 			@Override
 			public boolean matches(CharSequence rawPassword, String encodedPassword) {
 				System.out.println("==matches, " + rawPassword + " , " + encodedPassword);
-				// FIXME 测试数据：密码只要是admin就可以
+				// FIXME SpringSecurity：测试数据：密码只要是admin就可以
+				// FIXME SpringSecurity：用户呢？？
 				return "admin".equals(rawPassword);
 			}
 		});
