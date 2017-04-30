@@ -16,20 +16,20 @@
 使用RestTemplate处理请求。需要配置RestTemplate。springboot下配置如下：
 
 ```Java
-	@Autowired(required = false)
-	List<ClientHttpRequestInterceptor> interceptors;
+@Autowired(required = false)
+List<ClientHttpRequestInterceptor> interceptors;
 
-	@Bean
-	public RestTemplate restTemplate() {
-		System.out.println("-------restTemplate-------");
+@Bean
+public RestTemplate restTemplate() {
+	System.out.println("-------restTemplate-------");
 
-		RestTemplate restTemplate = new RestTemplate();
+	RestTemplate restTemplate = new RestTemplate();
 
-		// 设置拦截器，用于http basic的认证等
-		restTemplate.setInterceptors(interceptors);
+	// 设置拦截器，用于http basic的认证等
+	restTemplate.setInterceptors(interceptors);
 
-		return restTemplate;
-	}
+	return restTemplate;
+}
 ```
 
 如果需要登录，以http basic认证为例，增加以下配置bean即可
@@ -113,7 +113,7 @@ public String test() {
 
 # 使用本工程例子
 
-导入2个springboot工程 myrestserver 和 myrestutil。myrestserver端口为8081，由于测试rest服务。分别启动2个应用，然后访问 http://127.0.0.1:8080/ 
+导入2个springboot工程 myrestserver 和 myrestutil。myrestserver端口为8081，用于测试rest服务。分别启动2个应用，然后访问 http://127.0.0.1:8080/ 
 
 ![](/pictures/1.png) 
 
