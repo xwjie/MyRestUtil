@@ -12,6 +12,13 @@ import cn.xiaowenjie.myrestutil.beans.RequestInfo;
 import cn.xiaowenjie.myrestutil.beans.RestInfo;
 import cn.xiaowenjie.myrestutil.interfaces.IRequestHandle;
 
+/**
+ * 实现了IRequestHandle，基于resttemplate处理rest请求。
+ * 需要在spring容器中注册RestTemplate。
+ * 
+ * @author 肖文杰
+ * @date 2017.4.30
+ */
 @Component
 public class RestTemplateRequestHandle implements IRequestHandle {
 

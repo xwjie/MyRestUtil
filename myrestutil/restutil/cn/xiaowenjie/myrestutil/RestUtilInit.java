@@ -23,6 +23,12 @@ import cn.xiaowenjie.myrestutil.http.Param;
 import cn.xiaowenjie.myrestutil.http.Rest;
 import cn.xiaowenjie.myrestutil.interfaces.IRequestHandle;
 
+/**
+ * 扫描所有符合条件接口类，生成代理类处理请求，并把代理类注册到spring容器中。
+ * 
+ * @author 肖文杰
+ * @date 2017.4.30
+ */
 @Component
 public class RestUtilInit {
 

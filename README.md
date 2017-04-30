@@ -111,9 +111,19 @@ public String test() {
 }
 ```
 
+# 使用本工程例子
+
+导入2个springboot工程 myrestserver 和 myrestutil。myrestserver端口为8081，由于测试rest服务。分别启动2个应用，然后访问 http://127.0.0.1:8080/ 
+
+![](/pictures/1.png) 
+
+点击链接，会在8080的后台调用8081的rest请求，并把请求接口返回到页面。
+
+![](/pictures/2.png) 
+
 # 工作原理
 
-框架代码在单独的 `MyRestUtil\myrestutil\restutil` 目录中，所有逻辑都在 `RestUtilInit` 上，代码非常精简，一看就明白。
+框架代码在单独的 `MyRestUtil\myrestutil\restutil` 目录中，主要逻辑都在 `RestUtilInit` 上，代码非常精简，一看就明白。
 
 * 使用 `org.reflections.Reflections` 得到所有配置了 `@Rest` 的接口列表
 * 根据 `@Rest` 得到服务器配置信息 `RestInfo`
