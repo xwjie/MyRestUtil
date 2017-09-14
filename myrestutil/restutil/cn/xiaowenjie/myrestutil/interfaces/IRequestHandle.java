@@ -10,6 +10,5 @@ import cn.xiaowenjie.myrestutil.beans.RestInfo;
  * @date 2017.4.30
  */
 public interface IRequestHandle {
-
 	Object handle(RestInfo restInfo, RequestInfo request);
 }

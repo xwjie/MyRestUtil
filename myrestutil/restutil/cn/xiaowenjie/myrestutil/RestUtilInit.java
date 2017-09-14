@@ -40,29 +40,31 @@ public class RestUtilInit {
 
 	@PostConstruct
 	public void init() {
-
 		Set<Class<?>> requests = new Reflections("cn.xiaowenjie").getTypesAnnotatedWith(Rest.class);
 
 		for (Class<?> cls : requests) {
-			System.err.println("\tcreate proxy for class:" + cls);
-
-			// rest服务器相关信息
-			final RestInfo restInfo = extractRestInfo(cls);
-
-			InvocationHandler handler = new InvocationHandler() {
-				@Override
-				public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-					RequestInfo request = extractRequestInfo(method, args);
-					return requestHandle.handle(restInfo, request);
-				}
-			};
-
-			// 创建动态代理类
-			Object proxy = Proxy.newProxyInstance(this.getClass().getClassLoader(), new Class<?>[] { cls }, handler);
-
-			registerBean(cls.getName(), proxy);
+			createProxyClass(cls);
 		}
+	}
 
+	private void createProxyClass(Class<?> cls) {
+		System.err.println("\tcreate proxy for class:" + cls);
+
+		// rest服务器相关信息
+		final RestInfo restInfo = extractRestInfo(cls);
+
+		InvocationHandler handler = new InvocationHandler() {
+			@Override
+			public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+				RequestInfo request = extractRequestInfo(method, args);
+				return requestHandle.handle(restInfo, request);
+			}
+		};
+
+		// 创建动态代理类
+		Object proxy = Proxy.newProxyInstance(this.getClass().getClassLoader(), new Class<?>[] { cls }, handler);
+
+		registerBean(cls.getName(), proxy);
 	}
 
 	private RestInfo extractRestInfo(Class<?> cls) {
