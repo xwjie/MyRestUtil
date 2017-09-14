@@ -44,7 +44,7 @@ public class RestUtilInit {
 		Set<Class<?>> requests = new Reflections("cn.xiaowenjie").getTypesAnnotatedWith(Rest.class);
 
 		for (Class<?> cls : requests) {
-			System.out.println("create proxy for class:" + cls);
+			System.err.println("\tcreate proxy for class:" + cls);
 
 			// rest服务器相关信息
 			final RestInfo restInfo = extractRestInfo(cls);

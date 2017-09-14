@@ -27,11 +27,11 @@ public class RestTemplateRequestHandle implements IRequestHandle {
 
 	@Override
 	public Object handle(RestInfo restInfo, RequestInfo request) {
-		System.out.println("\n\n handle request,  restInfo=" + restInfo);
-		System.out.println(" handle request,  request=" + request);
+		System.err.println("\n\n\thandle request,  restInfo=" + restInfo);
+		System.err.println("\thandle request,  request=" + request);
 
 		String url = extractUrl(restInfo, request);
-		System.out.println(" handle url:" + url);
+		System.err.println("\thandle url:" + url);
 
 		//TODO 目前只写了get请求，需要支持post等在这里增加
 		//TODO 需要在这里增加异常处理，如登录失败，链接不上
