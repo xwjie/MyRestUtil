@@ -9,6 +9,11 @@
 
 框架只演示了get请求和支持http basic认证，需要支持post请求和其他认证方式的（如sso），自己寻找TODO标签补全代码即可。
 
+# 更新记录
+* 将 `RestUtilInit` 由普通bean修改为 `BeanFactoryPostProcessor` ，保证IRequestHandle优先与其他任何bean注册到容器中
+
+解决bean的依赖问题，不需要在接口类中增加 `@Lazy` 注解。 感谢 [李佳明](https://github.com/pkpk1234) 修改完善。
+
 # 使用说明
 
 ## 指定RestTemplate

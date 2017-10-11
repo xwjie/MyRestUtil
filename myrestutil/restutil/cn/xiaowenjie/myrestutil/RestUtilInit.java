@@ -29,112 +29,125 @@ import java.util.Set;
  * @date 2017.4.30
  *
  * @author 李佳明
- * @date 2017.10.11
- * 将普通bean修改为BeanFactoryPostProcessor，保证IRequestHandle优先
- * 与其他任何bean注册到容器中
+ * @date 2017.10.11 将普通bean修改为BeanFactoryPostProcessor，保证IRequestHandle优先
+ *       与其他任何bean注册到容器中
  */
 @Component
 @Slf4j
 public class RestUtilInit implements BeanFactoryPostProcessor {
 
-    private DefaultListableBeanFactory defaultListableBeanFactory;
+	private DefaultListableBeanFactory defaultListableBeanFactory;
 
-    public void init() {
-        Set<Class<?>> requests = new Reflections("cn.xiaowenjie").getTypesAnnotatedWith(Rest.class);
+	public void init() {
+		Set<Class<?>> requests = new Reflections("cn.xiaowenjie").getTypesAnnotatedWith(Rest.class);
 
-        for (Class<?> cls : requests) {
-            createProxyClass(cls);
-        }
-    }
+		for (Class<?> cls : requests) {
+			createProxyClass(cls);
+		}
+	}
 
-    private void createProxyClass(Class<?> cls) {
-        log.info("\tcreate proxy for class:{}",cls);
+	private void createProxyClass(Class<?> cls) {
+		log.info("\tcreate proxy for class:{}", cls);
 
-        // rest服务器相关信息
-        final RestInfo restInfo = extractRestInfo(cls);
+		// rest服务器相关信息
+		final RestInfo restInfo = extractRestInfo(cls);
 
-        InvocationHandler handler = new InvocationHandler() {
-            @Override
-            public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-                RequestInfo request = extractRequestInfo(method, args);
-                IRequestHandle requestHandle = defaultListableBeanFactory.getBean(IRequestHandle.class);
-                return requestHandle.handle(restInfo, request);
-            }
-        };
+		InvocationHandler handler = new InvocationHandler() {
 
-        // 创建动态代理类
-        Object proxy = Proxy.newProxyInstance(this.getClass().getClassLoader(), new Class<?>[]{cls}, handler);
+			/**
+			 * 请求处理类（只获取一次）
+			 */
+			private IRequestHandle requestHandle;
 
-        registerBean(cls.getName(), proxy);
-    }
+			private IRequestHandle getRequestHandler() {
+				if (this.requestHandle == null) {
+					this.requestHandle = defaultListableBeanFactory.getBean(IRequestHandle.class);
+				}
 
-    private RestInfo extractRestInfo(Class<?> cls) {
-        RestInfo restinfo = new RestInfo();
+				return this.requestHandle;
+			}
 
-        Rest annotation = cls.getAnnotation(Rest.class);
+			@Override
+			public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+				RequestInfo request = extractRequestInfo(method, args);
+				return getRequestHandler().handle(restInfo, request);
+			}
+		};
 
-        String host = annotation.value();
-        restinfo.setHost(host);
+		// 创建动态代理类
+		Object proxy = Proxy.newProxyInstance(this.getClass().getClassLoader(), new Class<?>[] { cls }, handler);
 
-        return restinfo;
-    }
+		registerBean(cls.getName(), proxy);
+	}
 
-    protected RequestInfo extractRequestInfo(Method method, Object[] args) {
-        RequestInfo info = new RequestInfo();
+	private RestInfo extractRestInfo(Class<?> cls) {
+		RestInfo restinfo = new RestInfo();
 
-        // TODO 目前只写了get请求，需要支持post等在这里增加
-        GET annotation = method.getAnnotation(GET.class);
+		Rest annotation = cls.getAnnotation(Rest.class);
 
-        // url
-        String url = annotation.value();
+		String host = annotation.value();
+		restinfo.setHost(host);
 
-        // 没有配置路径取函数名称
-        if (StringUtils.isEmpty(url)) {
-            url = "/" + method.getName();
-        }
+		return restinfo;
+	}
 
-        info.setUrl(url);
+	protected RequestInfo extractRequestInfo(Method method, Object[] args) {
+		RequestInfo info = new RequestInfo();
 
-        // 返回类型
-        info.setReturnType(method.getReturnType());
+		// TODO 目前只写了get请求，需要支持post等在这里增加
+		GET annotation = method.getAnnotation(GET.class);
 
-        // 参数
-        LinkedHashMap<String, String> params = extractParams(method, args);
-        info.setParams(params);
+		// url
+		String url = annotation.value();
 
-        return info;
-    }
+		// 没有配置路径取函数名称
+		if (StringUtils.isEmpty(url)) {
+			url = "/" + method.getName();
+		}
 
-    private LinkedHashMap<String, String> extractParams(Method method, Object[] args) {
-        Parameter[] parameters = method.getParameters();
+		info.setUrl(url);
 
-        if (parameters.length == 0) {
-            return null;
-        }
+		// 返回类型
+		info.setReturnType(method.getReturnType());
 
-        LinkedHashMap<String, String> params = new LinkedHashMap<>();
-        for (int i = 0; i < parameters.length; i++) {
-            // FIXME 需要考虑变量名映射功能
-            // added by 李佳明：编译时必须加上 -g 参数才会生成方法参数名
-            // TODO parameters[i].getName() 居然得到的结果是arg0
-            Param param = parameters[i].getAnnotation(Param.class);
+		// 参数
+		LinkedHashMap<String, String> params = extractParams(method, args);
+		info.setParams(params);
 
-            if (param != null) {
-                params.put(param.value(), String.valueOf(args[i]));
-            }
-        }
+		return info;
+	}
 
-        return params;
-    }
+	private LinkedHashMap<String, String> extractParams(Method method, Object[] args) {
+		Parameter[] parameters = method.getParameters();
 
-    public void registerBean(String name, Object obj) {
-        // 动态注册bean.
-        this.defaultListableBeanFactory.registerSingleton(name, obj);
-    }
+		if (parameters.length == 0) {
+			return null;
+		}
 
-    @Override
-    public void postProcessBeanFactory(ConfigurableListableBeanFactory configurableListableBeanFactory) throws BeansException {
-        this.defaultListableBeanFactory = (DefaultListableBeanFactory) configurableListableBeanFactory;
-        this.init();
-    }
+		LinkedHashMap<String, String> params = new LinkedHashMap<>();
+		for (int i = 0; i < parameters.length; i++) {
+			// FIXME 需要考虑变量名映射功能
+			// added by 李佳明：编译时必须加上 -g 参数才会生成方法参数名
+			// TODO parameters[i].getName() 居然得到的结果是arg0
+			Param param = parameters[i].getAnnotation(Param.class);
+
+			if (param != null) {
+				params.put(param.value(), String.valueOf(args[i]));
+			}
+		}
+
+		return params;
+	}
+
+	public void registerBean(String name, Object obj) {
+		// 动态注册bean.
+		this.defaultListableBeanFactory.registerSingleton(name, obj);
+	}
+
+	@Override
+	public void postProcessBeanFactory(ConfigurableListableBeanFactory configurableListableBeanFactory)
+			throws BeansException {
+		this.defaultListableBeanFactory = (DefaultListableBeanFactory) configurableListableBeanFactory;
+		this.init();
+	}
 }
