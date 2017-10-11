@@ -6,6 +6,7 @@ import cn.xiaowenjie.myrestutil.http.GET;
 import cn.xiaowenjie.myrestutil.http.Param;
 import cn.xiaowenjie.myrestutil.http.Rest;
 import cn.xiaowenjie.myrestutil.interfaces.IRequestHandle;
+import lombok.extern.slf4j.Slf4j;
 import org.reflections.Reflections;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
@@ -33,6 +34,7 @@ import java.util.Set;
  * 与其他任何bean注册到容器中
  */
 @Component
+@Slf4j
 public class RestUtilInit implements BeanFactoryPostProcessor {
 
     private DefaultListableBeanFactory defaultListableBeanFactory;
@@ -46,7 +48,7 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
     }
 
     private void createProxyClass(Class<?> cls) {
-        System.err.println("\tcreate proxy for class:" + cls);
+        log.info("\tcreate proxy for class:{}",cls);
 
         // rest服务器相关信息
         final RestInfo restInfo = extractRestInfo(cls);
@@ -113,6 +115,7 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
         LinkedHashMap<String, String> params = new LinkedHashMap<>();
         for (int i = 0; i < parameters.length; i++) {
             // FIXME 需要考虑变量名映射功能
+            // added by 李佳明：编译时必须加上 -g 参数才会生成方法参数名
             // TODO parameters[i].getName() 居然得到的结果是arg0
             Param param = parameters[i].getAnnotation(Param.class);
 
