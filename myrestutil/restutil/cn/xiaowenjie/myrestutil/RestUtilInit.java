@@ -12,7 +12,10 @@ import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
+import org.springframework.cglib.proxy.CallbackFilter;
+import org.springframework.cglib.proxy.CallbackHelper;
 import org.springframework.cglib.proxy.Enhancer;
+import org.springframework.cglib.proxy.NoOp;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -68,11 +71,28 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 		final RestInfo restInfo = extractRestInfo(cls);
 		Enhancer enhancer = new Enhancer();
 		enhancer.setSuperclass(cls);
-		enhancer.setCallback(getCallback(restInfo));
+		CallbackHelper callbackHelper = getCallbackFilter(cls, restInfo);
+		enhancer.setCallbackFilter(callbackHelper);
+		enhancer.setCallbacks(callbackHelper.getCallbacks());
 		return enhancer.create();
 	}
 
-	private org.springframework.cglib.proxy.InvocationHandler getCallback(RestInfo restInfo) {
+	private CallbackHelper getCallbackFilter(Class<?> cls,final RestInfo restInfo) {
+		CallbackHelper callbackHelper = new CallbackHelper(cls,new Class[]{}) {
+			@Override
+			protected Object getCallback(Method method) {
+				if(method.getAnnotation(GET.class) == null) {
+					return NoOp.INSTANCE;
+				} else {
+					return getCglibCallback(restInfo);
+				}
+
+			}
+		};
+		return callbackHelper;
+	}
+
+	private org.springframework.cglib.proxy.InvocationHandler getCglibCallback(RestInfo restInfo) {
 		return new org.springframework.cglib.proxy.InvocationHandler() {
 			/**
 			 * 请求处理类（只获取一次）
@@ -89,11 +109,8 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 
 			@Override
 			public Object invoke(Object o, Method method, Object[] objects) throws Throwable {
-				if(method.getAnnotation(GET.class) != null) {
 					RequestInfo request = extractRequestInfo(method, objects);
 					return getRequestHandler().handle(restInfo, request);
-				}
-				return  method.invoke(o,objects);
 			}
 		};
 	}

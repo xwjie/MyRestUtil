@@ -11,6 +11,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import cn.xiaowenjie.retrofitdemo.MyRestUtilApplication;
 import cn.xiaowenjie.retrofitdemo.beans.ResultBean;
 import cn.xiaowenjie.retrofitdemo.interfaces.IRequestDemo;
+import static org.junit.Assert.*;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = MyRestUtilApplication.class)
@@ -53,4 +54,9 @@ public class MyRestUtilApplicationTests {
 		log.info("get3 result: {}",get3);
 	}
 
+	@Test
+	public void test6() {
+		String result = resquestDemoClass.doSomething();
+		assertEquals("test",result);
+	}
 }
