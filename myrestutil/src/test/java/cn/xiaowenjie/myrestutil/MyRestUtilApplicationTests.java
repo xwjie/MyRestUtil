@@ -1,5 +1,7 @@
 package cn.xiaowenjie.myrestutil;
 
+import cn.xiaowenjie.retrofitdemo.interfaces.ResquestDemoClass;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,10 +14,14 @@ import cn.xiaowenjie.retrofitdemo.interfaces.IRequestDemo;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = MyRestUtilApplication.class)
+@Slf4j
 public class MyRestUtilApplicationTests {
 
 	@Autowired
 	IRequestDemo demo;
+
+	@Autowired
+	ResquestDemoClass resquestDemoClass;
 
 	@Test
 	public void test() {
@@ -33,6 +39,18 @@ public class MyRestUtilApplicationTests {
 	public void test3() {
 		ResultBean get3 = demo.getWithMultKey("param111", "param222");
 		System.out.println(get3);
+	}
+
+	@Test
+	public void test4() {
+		ResultBean get1 = resquestDemoClass.get1();
+		log.info("get1 result: {}",get1);
+	}
+
+	@Test
+	public void test5() {
+		ResultBean get3 = resquestDemoClass.getWithMultKey("param111", "param222");
+		log.info("get3 result: {}",get3);
 	}
 
 }
