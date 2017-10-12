@@ -14,40 +14,7 @@
 
 解决bean的依赖问题，不需要在接口类中增加 `@Lazy` 注解。 感谢 [李佳明](https://github.com/pkpk1234) 修改完善。
 
-修改后，可以直接支持 `SpringCache` ！ 测试如下：
 
-* 接口类中增加 `@Cacheable` 注解。
-```Java
-@Rest("http://localhost:8081/test")
-public interface IRequestDemo {
-
-  @Cacheable("get1")
-  @GET
-  ResultBean get1();
-}
-```
-
-* junit中调用 `get1` 2次，可以发现http服务只发出了一次。第2次直接返回了。
-
-```Java
-
-@Test
-public void test() {
-  ResultBean result = t.getForObject(HOST + "/get1", ResultBean.class);
-
-  assertNotNull(result);
-
-  System.out.println(result);
-  
-  // 测试cache
-  // 第二次调用，不会在发送http请求。
-  result = t.getForObject(HOST + "/get1", ResultBean.class);
-
-  assertNotNull(result);
-
-  System.out.println(result);
-}
-```
 
 
 # 使用说明
