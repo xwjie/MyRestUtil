@@ -38,6 +38,13 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 
 	private DefaultListableBeanFactory defaultListableBeanFactory;
 
+	@Override
+	public void postProcessBeanFactory(ConfigurableListableBeanFactory configurableListableBeanFactory)
+			throws BeansException {
+		this.defaultListableBeanFactory = (DefaultListableBeanFactory) configurableListableBeanFactory;
+		this.init();
+	}
+
 	public void init() {
 		Set<Class<?>> requests = new Reflections("cn.xiaowenjie").getTypesAnnotatedWith(Rest.class);
 
@@ -47,7 +54,7 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 	}
 
 	private void createProxyClass(Class<?> cls) {
-		log.info("\tcreate proxy for class:{}", cls);
+		log.info("\tcreate proxy for interface:{}", cls);
 
 		// rest服务器相关信息
 		final RestInfo restInfo = extractRestInfo(cls);
@@ -144,10 +151,4 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 		this.defaultListableBeanFactory.registerSingleton(name, obj);
 	}
 
-	@Override
-	public void postProcessBeanFactory(ConfigurableListableBeanFactory configurableListableBeanFactory)
-			throws BeansException {
-		this.defaultListableBeanFactory = (DefaultListableBeanFactory) configurableListableBeanFactory;
-		this.init();
-	}
 }

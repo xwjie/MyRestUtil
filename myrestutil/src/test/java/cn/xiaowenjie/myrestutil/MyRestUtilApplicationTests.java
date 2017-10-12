@@ -1,5 +1,9 @@
 package cn.xiaowenjie.myrestutil;
 
+import java.lang.reflect.Field;
+import java.util.Properties;
+
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,9 +21,20 @@ public class MyRestUtilApplicationTests {
 	@Autowired
 	IRequestDemo demo;
 
+	public static void saveGeneratedJdkProxyFiles() throws Exception {
+		System.getProperties().put("sun.misc.ProxyGenerator.saveGeneratedFiles", "true");
+	}
+
 	@Test
-	public void test() {
+	public void test1() throws Exception {
+		saveGeneratedJdkProxyFiles();
+		
 		ResultBean get1 = demo.get1();
+		System.out.println(get1);
+
+		// 测试cache
+		// 第二次调用，不会再发送http请求。
+		get1 = demo.get1();
 		System.out.println(get1);
 	}
 

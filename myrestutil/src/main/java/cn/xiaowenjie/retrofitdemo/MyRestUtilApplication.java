@@ -1,10 +1,13 @@
 package cn.xiaowenjie.retrofitdemo;
 
+import java.lang.reflect.Field;
 import java.util.List;
+import java.util.Properties;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
@@ -12,9 +15,11 @@ import org.springframework.web.client.RestTemplate;
 
 @ComponentScan("cn.xiaowenjie")
 @SpringBootApplication
+@EnableCaching
 public class MyRestUtilApplication {
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws Exception {
+		
 		SpringApplication.run(MyRestUtilApplication.class, args);
 	}
 
@@ -32,5 +37,7 @@ public class MyRestUtilApplication {
 
 		return restTemplate;
 	}
+
+
 
 }

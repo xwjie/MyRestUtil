@@ -10,9 +10,45 @@
 框架只演示了get请求和支持http basic认证，需要支持post请求和其他认证方式的（如sso），自己寻找TODO标签补全代码即可。
 
 # 更新记录
-* 将 `RestUtilInit` 由普通bean修改为 `BeanFactoryPostProcessor` ，保证IRequestHandle优先与其他任何bean注册到容器中
+> * 2017.10.11 将 `RestUtilInit` 由普通bean修改为 `BeanFactoryPostProcessor` ，保证IRequestHandle优先与其他任何bean注册到容器中
 
 解决bean的依赖问题，不需要在接口类中增加 `@Lazy` 注解。 感谢 [李佳明](https://github.com/pkpk1234) 修改完善。
+
+修改后，可以直接支持 `SpringCache` ！ 测试如下：
+
+* 接口类中增加 `@Cacheable` 注解。
+```Java
+@Rest("http://localhost:8081/test")
+public interface IRequestDemo {
+
+  @Cacheable("get1")
+  @GET
+  ResultBean get1();
+}
+```
+
+* junit中调用 `get1` 2次，可以发现http服务只发出了一次。第2次直接返回了。
+
+```Java
+
+@Test
+public void test() {
+  ResultBean result = t.getForObject(HOST + "/get1", ResultBean.class);
+
+  assertNotNull(result);
+
+  System.out.println(result);
+  
+  // 测试cache
+  // 第二次调用，不会在发送http请求。
+  result = t.getForObject(HOST + "/get1", ResultBean.class);
+
+  assertNotNull(result);
+
+  System.out.println(result);
+}
+```
+
 
 # 使用说明
 
@@ -26,14 +62,14 @@ List<ClientHttpRequestInterceptor> interceptors;
 
 @Bean
 public RestTemplate restTemplate() {
-	System.out.println("-------restTemplate-------");
+  System.out.println("-------restTemplate-------");
 
-	RestTemplate restTemplate = new RestTemplate();
+  RestTemplate restTemplate = new RestTemplate();
 
-	// 设置拦截器，用于http basic的认证等
-	restTemplate.setInterceptors(interceptors);
+  // 设置拦截器，用于http basic的认证等
+  restTemplate.setInterceptors(interceptors);
 
-	return restTemplate;
+  return restTemplate;
 }
 ```
 
@@ -43,24 +79,24 @@ public RestTemplate restTemplate() {
 @Component
 public class HttpBasicRequestInterceptor implements ClientHttpRequestInterceptor {
 
-	@Override
-	public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution)
-			throws IOException {
+  @Override
+  public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution)
+      throws IOException {
 
-		// TODO 需要得到当前用户
-		System.out.println("---------需要得到当前用户，然后设置账号密码-----------");
+    // TODO 需要得到当前用户
+    System.out.println("---------需要得到当前用户，然后设置账号密码-----------");
 
-		String plainCreds = "xiaowenjie:admin";
-		byte[] plainCredsBytes = plainCreds.getBytes();
-		byte[] base64CredsBytes = Base64.encodeBase64(plainCredsBytes);
+    String plainCreds = "xiaowenjie:admin";
+    byte[] plainCredsBytes = plainCreds.getBytes();
+    byte[] base64CredsBytes = Base64.encodeBase64(plainCredsBytes);
 
-		String headerValue = new String(base64CredsBytes);
+    String headerValue = new String(base64CredsBytes);
 
-		HttpRequestWrapper requestWrapper = new HttpRequestWrapper(request);
-		requestWrapper.getHeaders().add("Authorization", "Basic " + headerValue);
+    HttpRequestWrapper requestWrapper = new HttpRequestWrapper(request);
+    requestWrapper.getHeaders().add("Authorization", "Basic " + headerValue);
 
-		return execution.execute(requestWrapper, body);
-	}
+    return execution.execute(requestWrapper, body);
+  }
 }
 ```
 
@@ -77,14 +113,14 @@ import cn.xiaowenjie.retrofitdemo.beans.ResultBean;
 @Rest("http://localhost:8081/test")
 public interface IRequestDemo {
 
-	@GET
-	ResultBean get1();
+  @GET
+  ResultBean get1();
 
-	@GET("/get2")
-	ResultBean getWithKey(@Param("key") String key);
+  @GET("/get2")
+  ResultBean getWithKey(@Param("key") String key);
 
-	@GET("/get3")
-	ResultBean getWithMultKey(@Param("key1") String key, @Param("key2") String key2);
+  @GET("/get3")
+  ResultBean getWithMultKey(@Param("key1") String key, @Param("key2") String key2);
 }
 ```
 
@@ -98,21 +134,21 @@ public interface IRequestDemo {
 IRequestDemo demo;
 
 public String test() {
-	String msg = "<h1>invoke remote rest result</h1>";
+  String msg = "<h1>invoke remote rest result</h1>";
 
-	ResultBean get1 = demo.get1();
+  ResultBean get1 = demo.get1();
 
-	msg += "<br/>get1 result=" + get1;
+  msg += "<br/>get1 result=" + get1;
 
-	ResultBean get2 = demo.getWithKey("key-------");
+  ResultBean get2 = demo.getWithKey("key-------");
 
-	msg += "<br/>get2 result=" + get2;
+  msg += "<br/>get2 result=" + get2;
 
-	ResultBean get3 = demo.getWithMultKey("key11111", "key22222");
+  ResultBean get3 = demo.getWithMultKey("key11111", "key22222");
 
-	msg += "<br/>get3 result=" + get3;
+  msg += "<br/>get3 result=" + get3;
 
-	return msg;
+  return msg;
 }
 ```
 
