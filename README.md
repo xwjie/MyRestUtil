@@ -10,10 +10,38 @@
 框架只演示了get请求和支持http basic认证，需要支持post请求和其他认证方式的（如sso），自己寻找TODO标签补全代码即可。
 
 # 更新记录
-> * 2017.10.11 将 `RestUtilInit` 由普通bean修改为 `BeanFactoryPostProcessor` ，保证IRequestHandle优先与其他任何bean注册到容器中
+## 2017.10.11 将 `RestUtilInit` 由普通bean修改为 `BeanFactoryPostProcessor` ，保证IRequestHandle优先与其他任何bean注册到容器中
 
 解决bean的依赖问题，不需要在接口类中增加 `@Lazy` 注解。 感谢 [李佳明](https://github.com/pkpk1234) 修改完善。
 
+## 2017.10.13 增加功能：支持直接在类里面增加方法调用（使用cglib代理实现）
+
+这个特性效果不错，也很符合实际使用场景。之前的场景是调用http接口的时候，需要先定义一个接口，然后注入调用，现在不需要了，直接在普通类中增加方法即可。
+
+如下：业务代码中增加一个调用http接口的get2方法，然后直接调用即可。
+
+```Java
+@Rest(value = "http://localhost:8081/test")
+public abstract class SomeService {
+
+  /**
+   * 在类里面增加一个抽象的http接口调用方法
+   * @return
+   */
+  @GET("/get2")
+  public abstract ResultBean get2(@Param("key") String key);
+
+  /**
+   * 业务代码类中直接调用http接口
+   * 
+   * @return
+   */
+  public String doSomething() {
+    // 这里是一些业务代码，中间调用了其他系统的http接口。
+    return "调用接口返回结果：" + get2("支持直接在类里面注入使用").getData();
+  }
+}
+```
 
 
 
