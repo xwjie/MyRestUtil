@@ -41,15 +41,14 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 
 	private DefaultListableBeanFactory defaultListableBeanFactory;
 
-
 	public void init() {
-		Set<Class<?>> requests = new Reflections("cn.xiaowenjie").getTypesAnnotatedWith(Rest.class);
+		Set<Class<?>> requests = new Reflections("cn.xiaowenjie")
+				.getTypesAnnotatedWith(Rest.class);
 
 		for (Class<?> cls : requests) {
 			createProxyClass(cls);
 		}
 	}
-
 
 	/**
 	 * 根据场景创建JDK动态代理或者CGlib动态代理
@@ -58,12 +57,13 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 		log.info("\tcreate proxy for class:{}", cls);
 
 		boolean proxyClass = isProxyClass(cls);
-		//当注解了@Rest的类型是Class或者Rest的proxyClass的属性为true时，使用CGLib进行代理
-		if(proxyClass || !cls.isInterface()) {
+		// 当注解了@Rest的类型是Class或者Rest的proxyClass的属性为true时，使用CGLib进行代理
+		if (proxyClass || !cls.isInterface()) {
 			// 创建CGLib动态代理类
 			Object proxy = getCglibProxyObject(cls);
 			registerBean(cls.getName(), proxy);
-		} else {
+		}
+		else {
 			// 创建动态代理类
 			Object proxy = getJDKDynamicProxyObject(cls);
 			registerBean(cls.getName(), proxy);
@@ -84,13 +84,14 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 	/**
 	 * 只对添加了@GET注解的方法进行Rest代理
 	 */
-	private CallbackHelper getCallbackFilter(Class<?> cls,final RestInfo restInfo) {
-		CallbackHelper callbackHelper = new CallbackHelper(cls,new Class[]{}) {
+	private CallbackHelper getCallbackFilter(Class<?> cls, final RestInfo restInfo) {
+		CallbackHelper callbackHelper = new CallbackHelper(cls, new Class[] {}) {
 			@Override
 			protected Object getCallback(Method method) {
-				if(method.getAnnotation(GET.class) == null) {
+				if (method.getAnnotation(GET.class) == null) {
 					return NoOp.INSTANCE;
-				} else {
+				}
+				else {
 					return new MyInvocationHandler(restInfo);
 				}
 
@@ -101,15 +102,15 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 
 	/**
 	 * 判断是不是需要代理类（相对于代理接口，是个是代理类则使用cglib）
-	 *
+	 * <p>
 	 * 不是interface，或者 proxyClass=true 返回true
+	 *
 	 * @param cls
 	 * @return
 	 */
 	private boolean isProxyClass(Class<?> cls) {
 		return !cls.isInterface() || cls.getAnnotation(Rest.class).proxyClass();
 	}
-
 
 	/**
 	 * 创建JDK动态代理
@@ -118,7 +119,8 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 		// rest服务器相关信息
 		final RestInfo restInfo = extractRestInfo(cls);
 		InvocationHandler handler = new MyInvocationHandler(restInfo);
-		return Proxy.newProxyInstance(this.getClass().getClassLoader(), new Class<?>[] { cls }, handler);
+		return Proxy.newProxyInstance(this.getClass().getClassLoader(),
+				new Class<?>[] { cls }, handler);
 	}
 
 	private RestInfo extractRestInfo(Class<?> cls) {
@@ -136,7 +138,7 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 	 * Extract request info request info.
 	 *
 	 * @param method the method
-	 * @param args   the args
+	 * @param args the args
 	 * @return the request info
 	 */
 	protected RequestInfo extractRequestInfo(Method method, Object[] args) {
@@ -191,7 +193,7 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 	 * Register bean.
 	 *
 	 * @param name the name
-	 * @param obj  the obj
+	 * @param obj the obj
 	 */
 	public void registerBean(String name, Object obj) {
 		// 动态注册bean.
@@ -199,13 +201,15 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 	}
 
 	@Override
-	public void postProcessBeanFactory(ConfigurableListableBeanFactory configurableListableBeanFactory)
+	public void postProcessBeanFactory(
+			ConfigurableListableBeanFactory configurableListableBeanFactory)
 			throws BeansException {
 		this.defaultListableBeanFactory = (DefaultListableBeanFactory) configurableListableBeanFactory;
 		this.init();
 	}
 
-	private class MyInvocationHandler implements InvocationHandler,org.springframework.cglib.proxy.InvocationHandler {
+	private class MyInvocationHandler implements InvocationHandler,
+			org.springframework.cglib.proxy.InvocationHandler {
 
 		private RestInfo restInfo;
 
@@ -220,14 +224,16 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 
 		private IRequestHandle getRequestHandler() {
 			if (this.requestHandle == null) {
-				this.requestHandle = defaultListableBeanFactory.getBean(IRequestHandle.class);
+				this.requestHandle = defaultListableBeanFactory
+						.getBean(IRequestHandle.class);
 			}
 
 			return this.requestHandle;
 		}
 
 		@Override
-		public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+		public Object invoke(Object proxy, Method method, Object[] args)
+				throws Throwable {
 			RequestInfo request = extractRequestInfo(method, args);
 			return getRequestHandler().handle(restInfo, request);
 		}

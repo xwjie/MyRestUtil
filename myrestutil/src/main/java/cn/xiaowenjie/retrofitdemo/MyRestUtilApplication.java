@@ -1,8 +1,6 @@
 package cn.xiaowenjie.retrofitdemo;
 
-import java.lang.reflect.Field;
 import java.util.List;
-import java.util.Properties;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
