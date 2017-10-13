@@ -32,7 +32,7 @@ import java.util.Set;
  * @author 肖文杰
  * @author 李佳明
  * @date 2017.4.30
- * @date 2017.10.11 将普通bean修改为BeanFactoryPostProcessor，保证IRequestHandle优先       与其他任何bean注册到容器中
+ * @date 2017.10.11 将普通bean修改为BeanFactoryPostProcessor，保证IRequestHandle优先于其他任何bean注册到容器中
  * @date 2017.10.12 添加对Class的代理
  */
 @Component

@@ -34,6 +34,7 @@ public class RestTemplateTest {
 		assertNotNull(result);
 
 		System.out.println(result);
+
 	}
 
 }
