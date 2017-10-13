@@ -99,10 +99,17 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 		return callbackHelper;
 	}
 
+	/**
+	 * 判断是不是需要代理类（相对于代理接口，是个是代理类则使用cglib）
+	 *
+	 * 不是interface，或者 proxyClass=true 返回true
+	 * @param cls
+	 * @return
+	 */
 	private boolean isProxyClass(Class<?> cls) {
-		boolean proxyClass = cls.getAnnotation(Rest.class).proxyClass();
-		return proxyClass;
+		return !cls.isInterface() || cls.getAnnotation(Rest.class).proxyClass();
 	}
+
 
 	/**
 	 * 创建JDK动态代理
