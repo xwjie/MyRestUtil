@@ -1,9 +1,7 @@
 package cn.xiaowenjie.myrestutil;
 
-import java.lang.reflect.Field;
-import java.util.Properties;
-
-import org.junit.BeforeClass;
+import cn.xiaowenjie.retrofitdemo.services.SomeService;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,9 +11,11 @@ import org.springframework.test.context.junit4.SpringRunner;
 import cn.xiaowenjie.retrofitdemo.MyRestUtilApplication;
 import cn.xiaowenjie.retrofitdemo.beans.ResultBean;
 import cn.xiaowenjie.retrofitdemo.interfaces.IRequestDemo;
+import static org.junit.Assert.*;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = MyRestUtilApplication.class)
+@Slf4j
 public class MyRestUtilApplicationTests {
 
 	@Autowired
@@ -25,10 +25,13 @@ public class MyRestUtilApplicationTests {
 		System.getProperties().put("sun.misc.ProxyGenerator.saveGeneratedFiles", "true");
 	}
 
+	@Autowired
+	SomeService service;
+
 	@Test
 	public void test1() throws Exception {
 		saveGeneratedJdkProxyFiles();
-		
+
 		ResultBean get1 = demo.get1();
 		System.out.println(get1);
 
@@ -50,4 +53,9 @@ public class MyRestUtilApplicationTests {
 		System.out.println(get3);
 	}
 
+	@Test
+	public void testCglibProxy() {
+		String result = service.doSomething();
+		System.out.println(result);
+	}
 }

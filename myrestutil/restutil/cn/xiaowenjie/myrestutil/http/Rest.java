@@ -13,4 +13,5 @@ import java.lang.annotation.Target;
 public @interface Rest {
 
 	String value() default "";
+	boolean proxyClass() default false;
 }
