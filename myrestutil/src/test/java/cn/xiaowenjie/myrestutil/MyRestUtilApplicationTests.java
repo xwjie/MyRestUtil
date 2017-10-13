@@ -1,6 +1,6 @@
 package cn.xiaowenjie.myrestutil;
 
-import cn.xiaowenjie.retrofitdemo.interfaces.ResquestDemoClass;
+import cn.xiaowenjie.retrofitdemo.services.SomeService;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -21,12 +21,23 @@ public class MyRestUtilApplicationTests {
 	@Autowired
 	IRequestDemo demo;
 
+	public static void saveGeneratedJdkProxyFiles() throws Exception {
+		System.getProperties().put("sun.misc.ProxyGenerator.saveGeneratedFiles", "true");
+	}
+
 	@Autowired
-	ResquestDemoClass resquestDemoClass;
+	SomeService service;
 
 	@Test
-	public void test() {
+	public void test1() throws Exception {
+		saveGeneratedJdkProxyFiles();
+
 		ResultBean get1 = demo.get1();
+		System.out.println(get1);
+
+		// 测试cache
+		// 第二次调用，不会再发送http请求。
+		get1 = demo.get1();
 		System.out.println(get1);
 	}
 
@@ -43,20 +54,8 @@ public class MyRestUtilApplicationTests {
 	}
 
 	@Test
-	public void test4() {
-		ResultBean get1 = resquestDemoClass.get1();
-		log.info("get1 result: {}",get1);
-	}
-
-	@Test
-	public void test5() {
-		ResultBean get3 = resquestDemoClass.getWithMultKey("param111", "param222");
-		log.info("get3 result: {}",get3);
-	}
-
-	@Test
-	public void test6() {
-		String result = resquestDemoClass.doSomething();
-		assertEquals("test",result);
+	public void testCglibProxy() {
+		String result = service.doSomething();
+		System.out.println(result);
 	}
 }
