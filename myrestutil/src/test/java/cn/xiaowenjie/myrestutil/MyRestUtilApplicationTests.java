@@ -1,5 +1,8 @@
 package cn.xiaowenjie.myrestutil;
 
+import cn.xiaowenjie.retrofitdemo.MyRestUtilApplication;
+import cn.xiaowenjie.retrofitdemo.beans.ResultBean;
+import cn.xiaowenjie.retrofitdemo.interfaces.IRequestDemo;
 import cn.xiaowenjie.retrofitdemo.services.SomeService;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
@@ -7,11 +10,6 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
-
-import cn.xiaowenjie.retrofitdemo.MyRestUtilApplication;
-import cn.xiaowenjie.retrofitdemo.beans.ResultBean;
-import cn.xiaowenjie.retrofitdemo.interfaces.IRequestDemo;
-import static org.junit.Assert.*;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = MyRestUtilApplication.class)
