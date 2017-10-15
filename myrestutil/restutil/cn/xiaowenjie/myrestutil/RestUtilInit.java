@@ -41,13 +41,28 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 
 	private DefaultListableBeanFactory defaultListableBeanFactory;
 
-	public void init() {
-		Set<Class<?>> requests = new Reflections("cn.xiaowenjie")
+	public void init() throws NoSuchMethodException, ClassNotFoundException {
+		Set<Class<?>> requests = new Reflections(getBaseScanPackage())
 				.getTypesAnnotatedWith(Rest.class);
 
 		for (Class<?> cls : requests) {
 			createProxyClass(cls);
 		}
+	}
+
+	/**
+	 * 自动获取扫描路径
+	 * @return
+	 * @throws NoSuchMethodException
+	 * @throws ClassNotFoundException
+	 */
+	private String getBaseScanPackage() throws NoSuchMethodException, ClassNotFoundException {
+		String baseScanPackage = "cn.xiaowenjie";
+		//如果不是JUnit启动容器的，可以使用自动获取路径。JUnit启动的，只能使用硬编码或者配置文件
+		if(!StackTraceHelper.isRunByJunit(StackTraceHelper.getMainThreadStackTraceElements())) {
+			StackTraceHelper.getBasePackageByMain(2);
+		}
+		return baseScanPackage;
 	}
 
 	/**
@@ -205,7 +220,11 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 			ConfigurableListableBeanFactory configurableListableBeanFactory)
 			throws BeansException {
 		this.defaultListableBeanFactory = (DefaultListableBeanFactory) configurableListableBeanFactory;
-		this.init();
+		try {
+			this.init();
+		} catch (NoSuchMethodException | ClassNotFoundException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	private class MyInvocationHandler implements InvocationHandler,
