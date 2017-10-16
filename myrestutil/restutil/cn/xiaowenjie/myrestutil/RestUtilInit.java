@@ -6,6 +6,11 @@ import cn.xiaowenjie.myrestutil.http.GET;
 import cn.xiaowenjie.myrestutil.http.Param;
 import cn.xiaowenjie.myrestutil.http.Rest;
 import cn.xiaowenjie.myrestutil.interfaces.IRequestHandle;
+import javassist.ClassPool;
+import javassist.CtClass;
+import javassist.NotFoundException;
+import javassist.bytecode.ClassFile;
+import javassist.bytecode.ConstPool;
 import lombok.extern.slf4j.Slf4j;
 import org.reflections.Reflections;
 import org.springframework.beans.BeansException;
@@ -134,6 +139,9 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 		// rest服务器相关信息
 		final RestInfo restInfo = extractRestInfo(cls);
 		InvocationHandler handler = new MyInvocationHandler(restInfo);
+		/*Class<?> generateProxyClass = Proxy.getProxyClass(this.getClass().getClassLoader(),
+				new Class<?>[] { cls });*/
+
 		return Proxy.newProxyInstance(this.getClass().getClassLoader(),
 				new Class<?>[] { cls }, handler);
 	}
