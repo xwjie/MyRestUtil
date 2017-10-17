@@ -1,19 +1,19 @@
 package cn.xiaowenjie.myrestutil;
 
+import static org.junit.Assert.assertEquals;
+
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.net.URL;
-import java.nio.file.Paths;
 
-import javassist.*;
 import org.apache.commons.lang3.reflect.MethodUtils;
 import org.junit.Test;
 import org.springframework.cache.annotation.Cacheable;
 
+import javassist.CannotCompileException;
+import javassist.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import sun.misc.ProxyGenerator;
-import static org.junit.Assert.*;
 
 @Slf4j
 public class AnnotationUtilTest {
@@ -40,9 +40,9 @@ public class AnnotationUtilTest {
 	}
 
 	@Test
-	public void addAnnotationTest() throws NoSuchMethodException, ClassNotFoundException,
-			InvocationTargetException, CannotCompileException, NotFoundException,
-			IllegalAccessException {
+	public void addAnnotationToClassTest() throws NoSuchMethodException,
+			ClassNotFoundException, InvocationTargetException, CannotCompileException,
+			NotFoundException, IllegalAccessException {
 
 		Class<?> myClazz = MyRequestInterface.class;
 		Method getMethod = myClazz.getMethod("get", String.class);
