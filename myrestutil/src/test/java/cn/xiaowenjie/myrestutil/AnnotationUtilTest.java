@@ -1,15 +1,19 @@
 package cn.xiaowenjie.myrestutil;
 
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.reflect.MethodUtils;
-import org.junit.Test;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.net.URL;
+import java.nio.file.Paths;
+
+import javassist.*;
+import org.apache.commons.lang3.reflect.MethodUtils;
+import org.junit.Test;
+import org.springframework.cache.annotation.Cacheable;
+
+import lombok.extern.slf4j.Slf4j;
+import sun.misc.ProxyGenerator;
+import static org.junit.Assert.*;
 
 @Slf4j
 public class AnnotationUtilTest {
@@ -35,9 +39,26 @@ public class AnnotationUtilTest {
 
 	}
 
-	private static interface MyRequestInterface {
-		@RequestMapping(path = "/abc", method = RequestMethod.DELETE)
-		@Cacheable(key = "$abc")
-		public String get(String abc);
+	@Test
+	public void addAnnotationTest() throws NoSuchMethodException, ClassNotFoundException,
+			InvocationTargetException, CannotCompileException, NotFoundException,
+			IllegalAccessException {
+
+		Class<?> myClazz = MyRequestInterface.class;
+		Method getMethod = myClazz.getMethod("get", String.class);
+		Annotation annotation = getMethod.getAnnotation(Cacheable.class);
+
+		String proxyClassName = myClazz.getCanonicalName() + "Proxy";
+		byte[] myRequestInterfaceProxy = ProxyGenerator.generateProxyClass(proxyClassName,
+				new Class<?>[] { MyRequestInterface.class });
+		Class<?> myClazz2 = AnnotationUtil.addAnnotationToClass(proxyClassName,
+				myRequestInterfaceProxy, annotation);
+		Cacheable cacheable = myClazz2.getAnnotation(Cacheable.class);
+		if (cacheable != null) {
+			String key = cacheable.key();
+			log.info(key);
+			assertEquals("$abc", key);
+		}
 	}
+
 }
