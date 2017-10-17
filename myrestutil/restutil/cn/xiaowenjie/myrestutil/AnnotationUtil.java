@@ -3,8 +3,10 @@ package cn.xiaowenjie.myrestutil;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.List;
 import java.util.Objects;
 
+import javassist.bytecode.MethodInfo;
 import org.apache.commons.lang3.reflect.MethodUtils;
 
 import javassist.*;
@@ -29,7 +31,56 @@ public class AnnotationUtil {
 	 */
 
 	/**
-	 * 运行时动态修改Class字节码，添加Class级别的注解
+	 *
+	 * 运行时动态修改Class字节码，批量添加Class级别的注解和Method级别的注解
+	 * @param classBytes
+	 * @param annotationMetaDataInfo
+	 * @return
+	 * @throws NotFoundException
+	 * @throws NoSuchMethodException
+	 * @throws IllegalAccessException
+	 * @throws InvocationTargetException
+	 * @throws CannotCompileException
+	 */
+	public static Class<?> addAnnotaions(byte[] classBytes,
+			AnnotationMetaDataInfo annotationMetaDataInfo)
+			throws NotFoundException, NoSuchMethodException, IllegalAccessException,
+			InvocationTargetException, CannotCompileException {
+
+		// FIXIT: javaassit对同一个CtClass添加注解时，只有最后一个生效
+
+		String newClassName = annotationMetaDataInfo.getNewClassName();
+		CtClass ctClass = createCtClass(newClassName, classBytes);
+		ClassFile classFile = ctClass.getClassFile();
+		ConstPool constPool = classFile.getConstPool();
+
+		// 添加Class级别的注解
+		List<Annotation> classAnnotaions = annotationMetaDataInfo.getClassAnnotations();
+		if (classAnnotaions != null) {
+			for (Annotation annotation : classAnnotaions) {
+				addAnnotationToCtClass(annotation, classFile, constPool);
+			}
+		}
+		// 添加Method级别的注解
+		List<AnnotationMetaDataInfo.MethodAnnotation> methodAnnotations = annotationMetaDataInfo
+				.getMethodAnnotations();
+		if (methodAnnotations != null) {
+			for (AnnotationMetaDataInfo.MethodAnnotation methodAnnotation : methodAnnotations) {
+				String methodName = methodAnnotation.getMethodName();
+				List<Annotation> annotations = methodAnnotation.getAnnotations();
+				for (Annotation annotation : annotations) {
+					addAnnotationToMethodInfo(methodName, annotation, classFile,
+							constPool);
+				}
+			}
+		}
+
+		return ctClass.toClass();
+
+	}
+
+	/**
+	 * 运行时动态修改Class字节码，单条添加Class级别的注解
 	 *
 	 * @param canonicalClassName 添加注解后的Class名
 	 * @param classBytes 修改前的字节码
@@ -46,20 +97,69 @@ public class AnnotationUtil {
 			throws NotFoundException, NoSuchMethodException, IllegalAccessException,
 			InvocationTargetException, CannotCompileException {
 
-		ClassPool pool = ClassPool.getDefault();
-		pool.insertClassPath(new ByteArrayClassPath(canonicalClassName, classBytes));
-		CtClass ctClass = pool.get(canonicalClassName);
+		CtClass ctClass = createCtClass(canonicalClassName, classBytes);
 		ClassFile classFile = ctClass.getClassFile();
 		ConstPool constPool = classFile.getConstPool();
+		addAnnotationToCtClass(annotation, classFile, constPool);
+		Class<?> result = ctClass.toClass();
+
+		return result;
+	}
+
+	private static void addAnnotationToCtClass(Annotation annotation, ClassFile classFile,
+			ConstPool constPool) throws NotFoundException, NoSuchMethodException,
+			IllegalAccessException, InvocationTargetException {
 		AnnotationsAttribute attr = new AnnotationsAttribute(constPool,
 				AnnotationsAttribute.visibleTag);
 		javassist.bytecode.annotation.Annotation javaAssisitAnnotation = createJavaAssistAnnotaion(
 				annotation, constPool);
 		attr.addAnnotation(javaAssisitAnnotation);
 		classFile.addAttribute(attr);
-		Class<?> result = ctClass.toClass();
+	}
 
+	private static CtClass createCtClass(String canonicalClassName, byte[] classBytes)
+			throws NotFoundException {
+		ClassPool pool = ClassPool.getDefault();
+		pool.insertClassPath(new ByteArrayClassPath(canonicalClassName, classBytes));
+		return pool.get(canonicalClassName);
+	}
+
+	/**
+	 * 运行时动态修改Class字节码，单条添加Method级别的注解
+	 * @param canonicalClassName
+	 * @param methodName
+	 * @param classBytes
+	 * @param annotation
+	 * @return
+	 * @throws NotFoundException
+	 * @throws NoSuchMethodException
+	 * @throws IllegalAccessException
+	 * @throws InvocationTargetException
+	 * @throws CannotCompileException
+	 */
+	public static Class<?> addAnnotationToMethod(String canonicalClassName,
+			String methodName, byte[] classBytes, Annotation annotation)
+			throws NotFoundException, NoSuchMethodException, IllegalAccessException,
+			InvocationTargetException, CannotCompileException {
+		CtClass ctClass = createCtClass(canonicalClassName, classBytes);
+		ClassFile classFile = ctClass.getClassFile();
+		ConstPool constPool = classFile.getConstPool();
+		addAnnotationToMethodInfo(methodName, annotation, classFile, constPool);
+		Class<?> result = ctClass.toClass();
 		return result;
+	}
+
+	private static void addAnnotationToMethodInfo(String methodName,
+			Annotation annotation, ClassFile classFile, ConstPool constPool)
+			throws NotFoundException, NoSuchMethodException, IllegalAccessException,
+			InvocationTargetException {
+		AnnotationsAttribute attr = new AnnotationsAttribute(constPool,
+				AnnotationsAttribute.visibleTag);
+		javassist.bytecode.annotation.Annotation javaAssisitAnnotation = createJavaAssistAnnotaion(
+				annotation, constPool);
+		attr.addAnnotation(javaAssisitAnnotation);
+		MethodInfo method = classFile.getMethod(methodName);
+		method.addAttribute(attr);
 	}
 
 	/**

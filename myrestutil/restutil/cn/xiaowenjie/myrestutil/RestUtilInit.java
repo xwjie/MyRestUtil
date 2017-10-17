@@ -6,6 +6,7 @@ import cn.xiaowenjie.myrestutil.http.GET;
 import cn.xiaowenjie.myrestutil.http.Param;
 import cn.xiaowenjie.myrestutil.http.Rest;
 import cn.xiaowenjie.myrestutil.interfaces.IRequestHandle;
+import javassist.CannotCompileException;
 import javassist.ClassPool;
 import javassist.CtClass;
 import javassist.NotFoundException;
@@ -17,18 +18,20 @@ import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cglib.proxy.CallbackFilter;
 import org.springframework.cglib.proxy.CallbackHelper;
 import org.springframework.cglib.proxy.Enhancer;
 import org.springframework.cglib.proxy.NoOp;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
+import sun.misc.ProxyGenerator;
 
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
-import java.lang.reflect.Proxy;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.*;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -57,14 +60,17 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 
 	/**
 	 * 自动获取扫描路径
+	 *
 	 * @return
 	 * @throws NoSuchMethodException
 	 * @throws ClassNotFoundException
 	 */
-	private String getBaseScanPackage() throws NoSuchMethodException, ClassNotFoundException {
+	private String getBaseScanPackage()
+			throws NoSuchMethodException, ClassNotFoundException {
 		String baseScanPackage = "cn.xiaowenjie";
-		//如果不是JUnit启动容器的，可以使用自动获取路径。JUnit启动的，只能使用硬编码或者配置文件
-		if(!StackTraceHelper.isRunByJunit(StackTraceHelper.getMainThreadStackTraceElements())) {
+		// 如果不是JUnit启动容器的，可以使用自动获取路径。JUnit启动的，只能使用硬编码或者配置文件
+		if (!StackTraceHelper
+				.isRunByJunit(StackTraceHelper.getMainThreadStackTraceElements())) {
 			StackTraceHelper.getBasePackageByMain(2);
 		}
 		return baseScanPackage;
@@ -139,8 +145,59 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 		// rest服务器相关信息
 		final RestInfo restInfo = extractRestInfo(cls);
 		InvocationHandler handler = new MyInvocationHandler(restInfo);
-		/*Class<?> generateProxyClass = Proxy.getProxyClass(this.getClass().getClassLoader(),
-				new Class<?>[] { cls });*/
+		String newClassName = cls.getCanonicalName() + "Proxy";
+
+		List<AnnotationMetaDataInfo.MethodAnnotation> methodAnnotations = new ArrayList<>();
+
+		Method[] methods = cls.getDeclaredMethods();
+
+		if (methods != null) {
+			for (Method method : methods) {
+				Cacheable cacheable = method.getAnnotation(Cacheable.class);
+				if (cacheable != null) {
+					String methodName = method.getName();
+					List<Annotation> list = new ArrayList<>(1);
+					list.add(cacheable);
+					AnnotationMetaDataInfo.MethodAnnotation methodAnnotation = new AnnotationMetaDataInfo.MethodAnnotation(
+							methodName, list);
+					methodAnnotations.add(methodAnnotation);
+
+				}
+			}
+		}
+		if (methodAnnotations.size() > 0) {
+			byte[] bytes = ProxyGenerator.generateProxyClass(newClassName,
+					new Class<?>[] { cls });
+			AnnotationMetaDataInfo meta = AnnotationMetaDataInfo.builder()
+					.newClassName(newClassName).methodAnnotations(methodAnnotations)
+					.build();
+
+			try {
+                Class<?> proxyClass = AnnotationUtil.addAnnotaions(bytes, meta);
+				Constructor<?> constructor = proxyClass
+						.getConstructor(InvocationHandler.class);
+				Object object = constructor.newInstance(handler);
+				return object;
+			}
+			catch (NotFoundException e) {
+				e.printStackTrace();
+			}
+			catch (NoSuchMethodException e) {
+				e.printStackTrace();
+			}
+			catch (IllegalAccessException e) {
+				e.printStackTrace();
+			}
+			catch (InvocationTargetException e) {
+				e.printStackTrace();
+			}
+			catch (CannotCompileException e) {
+				e.printStackTrace();
+			}
+			catch (InstantiationException e) {
+				e.printStackTrace();
+			}
+		}
 
 		return Proxy.newProxyInstance(this.getClass().getClassLoader(),
 				new Class<?>[] { cls }, handler);
@@ -230,7 +287,8 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 		this.defaultListableBeanFactory = (DefaultListableBeanFactory) configurableListableBeanFactory;
 		try {
 			this.init();
-		} catch (NoSuchMethodException | ClassNotFoundException e) {
+		}
+		catch (NoSuchMethodException | ClassNotFoundException e) {
 			throw new RuntimeException(e);
 		}
 	}
