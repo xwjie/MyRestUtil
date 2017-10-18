@@ -41,6 +41,19 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 
 	private DefaultListableBeanFactory defaultListableBeanFactory;
 
+	@Override
+	public void postProcessBeanFactory(
+			ConfigurableListableBeanFactory configurableListableBeanFactory)
+			throws BeansException {
+		this.defaultListableBeanFactory = (DefaultListableBeanFactory) configurableListableBeanFactory;
+		try {
+			this.init();
+		}
+		catch (NoSuchMethodException | ClassNotFoundException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 	public void init() throws NoSuchMethodException, ClassNotFoundException {
 		Set<Class<?>> requests = new Reflections(getBaseScanPackage())
 				.getTypesAnnotatedWith(Rest.class);
@@ -60,11 +73,13 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 	private String getBaseScanPackage()
 			throws NoSuchMethodException, ClassNotFoundException {
 		String baseScanPackage = "cn.xiaowenjie";
+
 		// 如果不是JUnit启动容器的，可以使用自动获取路径。JUnit启动的，只能使用硬编码或者配置文件
 		if (!StackTraceHelper
 				.isRunByJunit(StackTraceHelper.getMainThreadStackTraceElements())) {
 			StackTraceHelper.getBasePackageByMain(2);
 		}
+
 		return baseScanPackage;
 	}
 
@@ -74,13 +89,13 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 	private void createProxyClass(Class<?> cls) throws NoSuchMethodException {
 		log.info("\tcreate proxy for class:{}", cls);
 		final RestInfo restInfo = extractRestInfo(cls);
-		MyInvocationHandler handler = getMyInvocationHandler(cls, restInfo);
+		MyInvocationHandler handler = getMyInvocationHandler(restInfo);
 		// 创建动态代理类定义
 		BeanDefinition beanDefinition = getProxyBeanDefinition(cls, handler, restInfo);
 		registerBeanDefinition(cls, beanDefinition);
 	}
 
-	private MyInvocationHandler getMyInvocationHandler(Class<?> cls, RestInfo restInfo) {
+	private MyInvocationHandler getMyInvocationHandler(RestInfo restInfo) {
 		return new MyInvocationHandler(restInfo);
 	}
 
@@ -110,6 +125,14 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 		CGLibProxyCreater cgLibProxyCreater = new CGLibProxyCreater(cls, newClassName,
 				callbackHelper, handler);
 		return cgLibProxyCreater.getProxyClass();
+	}
+
+	private Class<?> getJDKDynamicProxyClass(Class<?> cls, MyInvocationHandler handler)
+			throws NoSuchMethodException {
+		String newClassName = cls.getCanonicalName() + "Proxy";
+		JDKProxyCreater jdkProxyCreater = new JDKProxyCreater(newClassName,
+				new Class<?>[] { cls }, handler);
+		return jdkProxyCreater.getProxyClass();
 	}
 
 	private BeanDefinition getJDKBeanDefinition(Class<?> proxyClass,
@@ -157,14 +180,6 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 	 */
 	private boolean isProxyClass(Class<?> cls) {
 		return !cls.isInterface() || cls.getAnnotation(Rest.class).proxyClass();
-	}
-
-	private Class<?> getJDKDynamicProxyClass(Class<?> cls, MyInvocationHandler handler)
-			throws NoSuchMethodException {
-		String newClassName = cls.getCanonicalName() + "Proxy";
-		JDKProxyCreater jdkProxyCreater = new JDKProxyCreater(newClassName,
-				new Class<?>[] { cls }, handler);
-		return jdkProxyCreater.getProxyClass();
 	}
 
 	private RestInfo extractRestInfo(Class<?> cls) {
@@ -239,19 +254,6 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 	public void registerBean(String name, Object obj) {
 		// 动态注册bean.
 		this.defaultListableBeanFactory.registerSingleton(name, obj);
-	}
-
-	@Override
-	public void postProcessBeanFactory(
-			ConfigurableListableBeanFactory configurableListableBeanFactory)
-			throws BeansException {
-		this.defaultListableBeanFactory = (DefaultListableBeanFactory) configurableListableBeanFactory;
-		try {
-			this.init();
-		}
-		catch (NoSuchMethodException | ClassNotFoundException e) {
-			throw new RuntimeException(e);
-		}
 	}
 
 	private class MyInvocationHandler implements InvocationHandler,

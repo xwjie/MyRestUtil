@@ -53,6 +53,7 @@ public class MyRestUtilApplicationTests {
 
 	@Test
 	public void testCglibProxy() {
+		System.out.println(service.getClass());
 		String result = service.doSomething();
 		System.out.println(result);
 	}
