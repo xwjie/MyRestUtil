@@ -15,6 +15,4 @@ interface MyRequestInterface {
     @NotNull
     @Min(10)
 	String get(String abc);
-
-
 }

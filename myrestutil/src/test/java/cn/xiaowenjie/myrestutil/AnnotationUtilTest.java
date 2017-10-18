@@ -4,8 +4,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -25,6 +27,54 @@ import javax.validation.constraints.NotNull;
 
 @Slf4j
 public class AnnotationUtilTest {
+
+	@Test
+	public void testDynamicProxyLostAnnotations() throws NoSuchMethodException {
+		Class<?> myClazz = MyRequestInterface.class;
+		Annotation[] classAnnotations = myClazz.getAnnotations();
+		log.info("Class annotations of interface MyRequestInterface");
+		for (Annotation annotation : classAnnotations) {
+			log.info("\t\t{}", annotation);
+		}
+
+		Method get = myClazz.getMethod("get",String.class);
+		Annotation[] methodAnnotations = get.getAnnotations();
+		log.info("Method annotations of get method");
+		for (Annotation annotation : methodAnnotations) {
+			log.info("\t\t{}", annotation);
+		}
+
+		Object proxy = Proxy.newProxyInstance(MyRequestInterface.class.getClassLoader(),
+				new Class<?>[] { MyRequestInterface.class }, new InvocationHandler() {
+					@Override
+					public Object invoke(Object proxy, Method method, Object[] args)
+							throws Throwable {
+						return null;
+					}
+				});
+
+		Class<?> proxyClass = proxy.getClass();
+		Annotation[] proxyClassAnnotations = proxyClass.getAnnotations();
+		//长度为0
+		assertEquals(0,proxyClassAnnotations.length);
+		proxyClassAnnotations = proxyClass.getDeclaredAnnotations();
+		assertEquals(0,proxyClassAnnotations.length);
+
+		Method proxyGet = proxyClass.getMethod("get",String.class);
+		Annotation[] proxyMethodAnnotations = proxyGet.getAnnotations();
+		//长度为0
+		assertEquals(0,proxyMethodAnnotations.length);
+		proxyMethodAnnotations = proxyGet.getDeclaredAnnotations();
+		assertEquals(0,proxyMethodAnnotations.length);
+
+
+		Class<?>[] interfaces = proxyClass.getInterfaces();
+		for(Class<?> superInterface : interfaces) {
+			log.info("superInterface {}",superInterface.getCanonicalName());
+		}
+
+	}
+
 	@Test
 	public void reflectionAnnotation() throws NoSuchMethodException,
 			InvocationTargetException, IllegalAccessException {
@@ -118,32 +168,33 @@ public class AnnotationUtilTest {
 		String newClassName = myClazz.getCanonicalName() + "Proxy";
 
 		AnnotationMetaDataInfo annotationMetaDataInfo = AnnotationMetaDataInfo.builder()
-				/*.classAnnotations(classAnnotations)*/.newClassName(newClassName)
+				/* .classAnnotations(classAnnotations) */.newClassName(newClassName)
 				.methodAnnotations(methodAnnotations).build();
 
 		byte[] myRequestInterfaceProxy = ProxyGenerator.generateProxyClass(newClassName,
 				new Class<?>[] { MyRequestInterface.class });
 
-		Class<?> proxyClass = AnnotationUtil.addAnnotaions(myRequestInterfaceProxy, annotationMetaDataInfo);
+		Class<?> proxyClass = AnnotationUtil.addAnnotaions(myRequestInterfaceProxy,
+				annotationMetaDataInfo);
 
 		Aspect aspect2 = proxyClass.getAnnotation(Aspect.class);
 		assertNotNull(aspect2);
 
 		Controller controller2 = proxyClass.getAnnotation(Controller.class);
-		assertEquals(controller.value(),controller2.value());
+		assertEquals(controller.value(), controller2.value());
 
 		getMethod = proxyClass.getMethod("get", String.class);
 
 		Cacheable cacheable2 = getMethod.getAnnotation(Cacheable.class);
 		assertNotNull(cacheable2);
-		assertEquals(cacheable.key(),cacheable2.key());
+		assertEquals(cacheable.key(), cacheable2.key());
 
 		NotNull notNull2 = getMethod.getAnnotation(NotNull.class);
 		assertNotNull(notNull2);
 
 		Min min2 = getMethod.getAnnotation(Min.class);
 		assertNotNull(min2);
-		assertEquals(min.value(),min2.value());
+		assertEquals(min.value(), min2.value());
 	}
 
 }

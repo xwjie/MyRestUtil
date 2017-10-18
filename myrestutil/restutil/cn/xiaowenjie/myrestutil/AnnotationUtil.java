@@ -102,10 +102,19 @@ public class AnnotationUtil {
 		ConstPool constPool = classFile.getConstPool();
 		addAnnotationToCtClass(annotation, classFile, constPool);
 		Class<?> result = ctClass.toClass();
-
 		return result;
 	}
 
+	/**
+	 * 添加注解到CtClass
+	 * @param annotation
+	 * @param classFile
+	 * @param constPool
+	 * @throws NotFoundException
+	 * @throws NoSuchMethodException
+	 * @throws IllegalAccessException
+	 * @throws InvocationTargetException
+	 */
 	private static void addAnnotationToCtClass(Annotation annotation, ClassFile classFile,
 			ConstPool constPool) throws NotFoundException, NoSuchMethodException,
 			IllegalAccessException, InvocationTargetException {
@@ -117,6 +126,13 @@ public class AnnotationUtil {
 		classFile.addAttribute(attr);
 	}
 
+	/**
+	 * 根据字节码创建CtClass
+	 * @param canonicalClassName
+	 * @param classBytes
+	 * @return
+	 * @throws NotFoundException
+	 */
 	private static CtClass createCtClass(String canonicalClassName, byte[] classBytes)
 			throws NotFoundException {
 		ClassPool pool = ClassPool.getDefault();

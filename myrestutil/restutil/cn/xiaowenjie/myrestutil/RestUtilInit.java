@@ -1,38 +1,30 @@
 package cn.xiaowenjie.myrestutil;
 
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
+import java.util.LinkedHashMap;
+import java.util.Set;
+
+import org.reflections.Reflections;
+import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
+import org.springframework.beans.factory.support.BeanDefinitionBuilder;
+import org.springframework.beans.factory.support.DefaultListableBeanFactory;
+import org.springframework.cglib.proxy.CallbackHelper;
+import org.springframework.cglib.proxy.NoOp;
+import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
+
 import cn.xiaowenjie.myrestutil.beans.RequestInfo;
 import cn.xiaowenjie.myrestutil.beans.RestInfo;
 import cn.xiaowenjie.myrestutil.http.GET;
 import cn.xiaowenjie.myrestutil.http.Param;
 import cn.xiaowenjie.myrestutil.http.Rest;
 import cn.xiaowenjie.myrestutil.interfaces.IRequestHandle;
-import javassist.CannotCompileException;
-import javassist.ClassPool;
-import javassist.CtClass;
-import javassist.NotFoundException;
-import javassist.bytecode.ClassFile;
-import javassist.bytecode.ConstPool;
 import lombok.extern.slf4j.Slf4j;
-import org.reflections.Reflections;
-import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
-import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
-import org.springframework.beans.factory.support.DefaultListableBeanFactory;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cglib.proxy.CallbackFilter;
-import org.springframework.cglib.proxy.CallbackHelper;
-import org.springframework.cglib.proxy.Enhancer;
-import org.springframework.cglib.proxy.NoOp;
-import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
-import sun.misc.ProxyGenerator;
-
-import java.lang.annotation.Annotation;
-import java.lang.reflect.*;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Set;
 
 /**
  * 扫描所有符合条件接口类，生成代理类处理请求，并把代理类注册到spring容器中。
@@ -79,32 +71,61 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 	/**
 	 * 根据场景创建JDK动态代理或者CGlib动态代理
 	 */
-	private void createProxyClass(Class<?> cls) {
+	private void createProxyClass(Class<?> cls) throws NoSuchMethodException {
 		log.info("\tcreate proxy for class:{}", cls);
+		final RestInfo restInfo = extractRestInfo(cls);
+		MyInvocationHandler handler = getMyInvocationHandler(cls, restInfo);
+		// 创建动态代理类定义
+		BeanDefinition beanDefinition = getProxyBeanDefinition(cls, handler, restInfo);
+		registerBeanDefinition(cls, beanDefinition);
+	}
 
+	private MyInvocationHandler getMyInvocationHandler(Class<?> cls, RestInfo restInfo) {
+		return new MyInvocationHandler(restInfo);
+	}
+
+	private void registerBeanDefinition(Class<?> cls, BeanDefinition beanDefinition) {
+		this.defaultListableBeanFactory.registerBeanDefinition(cls.getSimpleName(),
+				beanDefinition);
+	}
+
+	private BeanDefinition getProxyBeanDefinition(Class<?> cls,
+			MyInvocationHandler handler, RestInfo restInfo) throws NoSuchMethodException {
 		boolean proxyClass = isProxyClass(cls);
 		// 当注解了@Rest的类型是Class或者Rest的proxyClass的属性为true时，使用CGLib进行代理
 		if (proxyClass || !cls.isInterface()) {
-			// 创建CGLib动态代理类
-			Object proxy = getCglibProxyObject(cls);
-			registerBean(cls.getName(), proxy);
+			Class<?> clazz = getCGLibProxyClass(cls, handler, restInfo);
+			return getCGLibBeanDefinition(clazz);
 		}
 		else {
-			// 创建动态代理类
-			Object proxy = getJDKDynamicProxyObject(cls);
-			registerBean(cls.getName(), proxy);
+			Class<?> clazz = getJDKDynamicProxyClass(cls, handler);
+			return getJDKBeanDefinition(clazz, handler);
 		}
 	}
 
-	private Object getCglibProxyObject(Class<?> cls) {
-		// rest服务器相关信息
-		final RestInfo restInfo = extractRestInfo(cls);
-		Enhancer enhancer = new Enhancer();
-		enhancer.setSuperclass(cls);
+	private Class<?> getCGLibProxyClass(Class<?> cls, MyInvocationHandler handler,
+			RestInfo restInfo) {
+		String newClassName = cls.getCanonicalName() + "Proxy";
 		CallbackHelper callbackHelper = getCallbackFilter(cls, restInfo);
-		enhancer.setCallbackFilter(callbackHelper);
-		enhancer.setCallbacks(callbackHelper.getCallbacks());
-		return enhancer.create();
+		CGLibProxyCreater cgLibProxyCreater = new CGLibProxyCreater(cls, newClassName,
+				callbackHelper, handler);
+		return cgLibProxyCreater.getProxyClass();
+	}
+
+	private BeanDefinition getJDKBeanDefinition(Class<?> proxyClass,
+			MyInvocationHandler handler) {
+		BeanDefinition beanDefinition = BeanDefinitionBuilder
+				.genericBeanDefinition(proxyClass).addConstructorArgValue(handler)
+				.getRawBeanDefinition();
+		beanDefinition.setAutowireCandidate(true);
+		return beanDefinition;
+	}
+
+	private BeanDefinition getCGLibBeanDefinition(Class<?> proxyClass) {
+		BeanDefinition beanDefinition = BeanDefinitionBuilder
+				.genericBeanDefinition(proxyClass).getRawBeanDefinition();
+		beanDefinition.setAutowireCandidate(true);
+		return beanDefinition;
 	}
 
 	/**
@@ -138,79 +159,19 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 		return !cls.isInterface() || cls.getAnnotation(Rest.class).proxyClass();
 	}
 
-	/**
-	 * 创建JDK动态代理
-	 */
-	private Object getJDKDynamicProxyObject(Class<?> cls) {
-		// rest服务器相关信息
-		final RestInfo restInfo = extractRestInfo(cls);
-		InvocationHandler handler = new MyInvocationHandler(restInfo);
+	private Class<?> getJDKDynamicProxyClass(Class<?> cls, MyInvocationHandler handler)
+			throws NoSuchMethodException {
 		String newClassName = cls.getCanonicalName() + "Proxy";
-
-		List<AnnotationMetaDataInfo.MethodAnnotation> methodAnnotations = new ArrayList<>();
-
-		Method[] methods = cls.getDeclaredMethods();
-
-		if (methods != null) {
-			for (Method method : methods) {
-				Cacheable cacheable = method.getAnnotation(Cacheable.class);
-				if (cacheable != null) {
-					String methodName = method.getName();
-					List<Annotation> list = new ArrayList<>(1);
-					list.add(cacheable);
-					AnnotationMetaDataInfo.MethodAnnotation methodAnnotation = new AnnotationMetaDataInfo.MethodAnnotation(
-							methodName, list);
-					methodAnnotations.add(methodAnnotation);
-
-				}
-			}
-		}
-		if (methodAnnotations.size() > 0) {
-			byte[] bytes = ProxyGenerator.generateProxyClass(newClassName,
-					new Class<?>[] { cls });
-			AnnotationMetaDataInfo meta = AnnotationMetaDataInfo.builder()
-					.newClassName(newClassName).methodAnnotations(methodAnnotations)
-					.build();
-
-			try {
-                Class<?> proxyClass = AnnotationUtil.addAnnotaions(bytes, meta);
-				Constructor<?> constructor = proxyClass
-						.getConstructor(InvocationHandler.class);
-				Object object = constructor.newInstance(handler);
-				return object;
-			}
-			catch (NotFoundException e) {
-				e.printStackTrace();
-			}
-			catch (NoSuchMethodException e) {
-				e.printStackTrace();
-			}
-			catch (IllegalAccessException e) {
-				e.printStackTrace();
-			}
-			catch (InvocationTargetException e) {
-				e.printStackTrace();
-			}
-			catch (CannotCompileException e) {
-				e.printStackTrace();
-			}
-			catch (InstantiationException e) {
-				e.printStackTrace();
-			}
-		}
-
-		return Proxy.newProxyInstance(this.getClass().getClassLoader(),
+		JDKProxyCreater jdkProxyCreater = new JDKProxyCreater(newClassName,
 				new Class<?>[] { cls }, handler);
+		return jdkProxyCreater.getProxyClass();
 	}
 
 	private RestInfo extractRestInfo(Class<?> cls) {
 		RestInfo restinfo = new RestInfo();
-
 		Rest annotation = cls.getAnnotation(Rest.class);
-
 		String host = annotation.value();
 		restinfo.setHost(host);
-
 		return restinfo;
 	}
 
