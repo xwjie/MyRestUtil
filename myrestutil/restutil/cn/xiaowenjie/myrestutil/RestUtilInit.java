@@ -245,17 +245,6 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 		return params;
 	}
 
-	/**
-	 * Register bean.
-	 *
-	 * @param name the name
-	 * @param obj the obj
-	 */
-	public void registerBean(String name, Object obj) {
-		// 动态注册bean.
-		this.defaultListableBeanFactory.registerSingleton(name, obj);
-	}
-
 	private class MyInvocationHandler implements InvocationHandler,
 			org.springframework.cglib.proxy.InvocationHandler {
 
