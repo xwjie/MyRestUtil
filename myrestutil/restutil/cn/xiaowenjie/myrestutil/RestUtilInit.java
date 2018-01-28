@@ -91,7 +91,7 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 		final RestInfo restInfo = extractRestInfo(cls);
 		MyInvocationHandler handler = getMyInvocationHandler(restInfo);
 		// 创建动态代理类定义
-		BeanDefinition beanDefinition = getProxyBeanDefinition(cls, handler, restInfo);
+		BeanDefinition beanDefinition = getProxyBeanDefinition(cls, handler);
 		registerBeanDefinition(cls, beanDefinition);
 	}
 
@@ -104,12 +104,21 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 				beanDefinition);
 	}
 
+	/**
+	 * 创建代理类得到spring注册需要的bean的定义 堆
+	 * @param cls
+	 * @param handler
+	 * @param restInfo
+	 * @return
+	 * @throws NoSuchMethodException
+	 */
 	private BeanDefinition getProxyBeanDefinition(Class<?> cls,
-			MyInvocationHandler handler, RestInfo restInfo) throws NoSuchMethodException {
+			MyInvocationHandler handler) throws NoSuchMethodException {
 		boolean proxyClass = isProxyClass(cls);
+
 		// 当注解了@Rest的类型是Class或者Rest的proxyClass的属性为true时，使用CGLib进行代理
-		if (proxyClass || !cls.isInterface()) {
-			Class<?> clazz = getCGLibProxyClass(cls, handler, restInfo);
+		if (proxyClass) {
+			Class<?> clazz = getCGLibProxyClass(cls, handler);
 			return getCGLibBeanDefinition(clazz);
 		}
 		else {
@@ -118,10 +127,9 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 		}
 	}
 
-	private Class<?> getCGLibProxyClass(Class<?> cls, MyInvocationHandler handler,
-			RestInfo restInfo) {
+	private Class<?> getCGLibProxyClass(Class<?> cls, MyInvocationHandler handler) {
 		String newClassName = cls.getCanonicalName() + "Proxy";
-		CallbackHelper callbackHelper = getCallbackFilter(cls, restInfo);
+		CallbackHelper callbackHelper = getCallbackFilter(cls, handler);
 		CGLibProxyCreater cgLibProxyCreater = new CGLibProxyCreater(cls, newClassName,
 				callbackHelper, handler);
 		return cgLibProxyCreater.getProxyClass();
@@ -154,17 +162,18 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 	/**
 	 * 只对添加了@GET注解的方法进行Rest代理
 	 */
-	private CallbackHelper getCallbackFilter(Class<?> cls, final RestInfo restInfo) {
+	private CallbackHelper getCallbackFilter(Class<?> cls,
+			final MyInvocationHandler handler) {
 		CallbackHelper callbackHelper = new CallbackHelper(cls, new Class[] {}) {
 			@Override
 			protected Object getCallback(Method method) {
+				System.out.println(method);
 				if (method.getAnnotation(GET.class) == null) {
 					return NoOp.INSTANCE;
 				}
 				else {
-					return new MyInvocationHandler(restInfo);
+					return handler;
 				}
-
 			}
 		};
 		return callbackHelper;

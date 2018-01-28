@@ -29,6 +29,7 @@ public abstract class SomeService {
 	 * @return
 	 */
 	public String doSomething() {
+		System.out.println("执行一些业务代码");
 		// 这里是一些业务代码，中间调用了其他系统的http接口。
 		return "调用接口返回结果：" + get2("支持直接在类里面注入使用").getData();
 	}

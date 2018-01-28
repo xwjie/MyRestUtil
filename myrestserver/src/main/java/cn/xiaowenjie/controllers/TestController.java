@@ -18,13 +18,13 @@ public class TestController {
 
 	@GetMapping("/get2")
 	public ResultBean get2(String key) {
-		System.out.println("TestController.get1() =" + key);
+		System.out.println("TestController.get2() =" + key);
 		return new ResultBean("get2 success, key=" + key);
 	}
 
 	@GetMapping("/get3")
 	public ResultBean get3(String key1, String key2) {
-		System.out.println("TestController.get1() =" + key1 + ", " + key2);
+		System.out.println("TestController.get3() =" + key1 + ", " + key2);
 		return new ResultBean("get3 success, key=" + key1 + ", " + key2);
 	}
 }
