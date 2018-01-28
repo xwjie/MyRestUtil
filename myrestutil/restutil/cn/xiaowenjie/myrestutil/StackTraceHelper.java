@@ -86,7 +86,8 @@ public class StackTraceHelper {
 	}
 
 	/**
-	 * 获取部分包名，当deep<=0或者deep大于包名深度时，返回完整pack值 例子： 1.pack="com.ljm.test"，deep=2,结果为com.ljm
+	 * 获取部分包名，当deep<=0或者deep大于包名深度时，返回完整pack值 例子： 
+	 * 1.pack="com.ljm.test"，deep=2,结果为com.ljm
 	 * 2.pack="com.ljm.test"，deep=0,结果为com.ljm.test
 	 * 3.pack="com.ljm.test"，deep=5,结果为com.ljm.test
 	 * 4.pack="com.ljm.test"，deep=-1,结果为com.ljm.test

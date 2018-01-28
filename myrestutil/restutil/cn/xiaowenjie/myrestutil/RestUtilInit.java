@@ -32,7 +32,8 @@ import lombok.extern.slf4j.Slf4j;
  * @author 肖文杰
  * @author 李佳明
  * @date 2017.4.30
- * @date 2017.10.11 将普通bean修改为BeanFactoryPostProcessor，保证IRequestHandle优先于其他任何bean注册到容器中
+ * @date 2017.10.11
+ *       将普通bean修改为BeanFactoryPostProcessor，保证IRequestHandle优先于其他任何bean注册到容器中
  * @date 2017.10.12 添加对Class的代理
  */
 @Component
@@ -42,21 +43,18 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 	private DefaultListableBeanFactory defaultListableBeanFactory;
 
 	@Override
-	public void postProcessBeanFactory(
-			ConfigurableListableBeanFactory configurableListableBeanFactory)
+	public void postProcessBeanFactory(ConfigurableListableBeanFactory configurableListableBeanFactory)
 			throws BeansException {
 		this.defaultListableBeanFactory = (DefaultListableBeanFactory) configurableListableBeanFactory;
 		try {
 			this.init();
-		}
-		catch (NoSuchMethodException | ClassNotFoundException e) {
+		} catch (NoSuchMethodException | ClassNotFoundException e) {
 			throw new RuntimeException(e);
 		}
 	}
 
 	public void init() throws NoSuchMethodException, ClassNotFoundException {
-		Set<Class<?>> requests = new Reflections(getBaseScanPackage())
-				.getTypesAnnotatedWith(Rest.class);
+		Set<Class<?>> requests = new Reflections(getBaseScanPackage()).getTypesAnnotatedWith(Rest.class);
 
 		for (Class<?> cls : requests) {
 			createProxyClass(cls);
@@ -70,13 +68,11 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 	 * @throws NoSuchMethodException
 	 * @throws ClassNotFoundException
 	 */
-	private String getBaseScanPackage()
-			throws NoSuchMethodException, ClassNotFoundException {
+	private String getBaseScanPackage() throws NoSuchMethodException, ClassNotFoundException {
 		String baseScanPackage = "cn.xiaowenjie";
 
 		// 如果不是JUnit启动容器的，可以使用自动获取路径。JUnit启动的，只能使用硬编码或者配置文件
-		if (!StackTraceHelper
-				.isRunByJunit(StackTraceHelper.getMainThreadStackTraceElements())) {
+		if (!StackTraceHelper.isRunByJunit(StackTraceHelper.getMainThreadStackTraceElements())) {
 			StackTraceHelper.getBasePackageByMain(2);
 		}
 
@@ -89,7 +85,9 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 	private void createProxyClass(Class<?> cls) throws NoSuchMethodException {
 		log.info("\tcreate proxy for class:{}", cls);
 		final RestInfo restInfo = extractRestInfo(cls);
+
 		MyInvocationHandler handler = getMyInvocationHandler(restInfo);
+
 		// 创建动态代理类定义
 		BeanDefinition beanDefinition = getProxyBeanDefinition(cls, handler);
 		registerBeanDefinition(cls, beanDefinition);
@@ -100,61 +98,56 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 	}
 
 	private void registerBeanDefinition(Class<?> cls, BeanDefinition beanDefinition) {
-		this.defaultListableBeanFactory.registerBeanDefinition(cls.getSimpleName(),
-				beanDefinition);
+		this.defaultListableBeanFactory.registerBeanDefinition(cls.getSimpleName(), beanDefinition);
 	}
 
 	/**
 	 * 创建代理类得到spring注册需要的bean的定义 堆
+	 * 
 	 * @param cls
 	 * @param handler
 	 * @param restInfo
 	 * @return
 	 * @throws NoSuchMethodException
 	 */
-	private BeanDefinition getProxyBeanDefinition(Class<?> cls,
-			MyInvocationHandler handler) throws NoSuchMethodException {
+	private BeanDefinition getProxyBeanDefinition(Class<?> cls, MyInvocationHandler handler)
+			throws NoSuchMethodException {
 		boolean proxyClass = isProxyClass(cls);
 
 		// 当注解了@Rest的类型是Class或者Rest的proxyClass的属性为true时，使用CGLib进行代理
 		if (proxyClass) {
 			Class<?> clazz = getCGLibProxyClass(cls, handler);
 			return getCGLibBeanDefinition(clazz);
-		}
-		else {
+		} else {
 			Class<?> clazz = getJDKDynamicProxyClass(cls, handler);
 			return getJDKBeanDefinition(clazz, handler);
 		}
 	}
 
 	private Class<?> getCGLibProxyClass(Class<?> cls, MyInvocationHandler handler) {
-		String newClassName = cls.getCanonicalName() + "Proxy";
+		// String newClassName = cls.getCanonicalName() + "Proxy";
 		CallbackHelper callbackHelper = getCallbackFilter(cls, handler);
-		CGLibProxyCreater cgLibProxyCreater = new CGLibProxyCreater(cls, newClassName,
-				callbackHelper, handler);
+
+		CGLibProxyCreater cgLibProxyCreater = new CGLibProxyCreater(cls, callbackHelper);
+
 		return cgLibProxyCreater.getProxyClass();
 	}
 
-	private Class<?> getJDKDynamicProxyClass(Class<?> cls, MyInvocationHandler handler)
-			throws NoSuchMethodException {
+	private Class<?> getJDKDynamicProxyClass(Class<?> cls, MyInvocationHandler handler) throws NoSuchMethodException {
 		String newClassName = cls.getCanonicalName() + "Proxy";
-		JDKProxyCreater jdkProxyCreater = new JDKProxyCreater(newClassName,
-				new Class<?>[] { cls }, handler);
+		JDKProxyCreater jdkProxyCreater = new JDKProxyCreater(newClassName, new Class<?>[] { cls }, handler);
 		return jdkProxyCreater.getProxyClass();
 	}
 
-	private BeanDefinition getJDKBeanDefinition(Class<?> proxyClass,
-			MyInvocationHandler handler) {
-		BeanDefinition beanDefinition = BeanDefinitionBuilder
-				.genericBeanDefinition(proxyClass).addConstructorArgValue(handler)
-				.getRawBeanDefinition();
+	private BeanDefinition getJDKBeanDefinition(Class<?> proxyClass, MyInvocationHandler handler) {
+		BeanDefinition beanDefinition = BeanDefinitionBuilder.genericBeanDefinition(proxyClass)
+				.addConstructorArgValue(handler).getRawBeanDefinition();
 		beanDefinition.setAutowireCandidate(true);
 		return beanDefinition;
 	}
 
 	private BeanDefinition getCGLibBeanDefinition(Class<?> proxyClass) {
-		BeanDefinition beanDefinition = BeanDefinitionBuilder
-				.genericBeanDefinition(proxyClass).getRawBeanDefinition();
+		BeanDefinition beanDefinition = BeanDefinitionBuilder.genericBeanDefinition(proxyClass).getRawBeanDefinition();
 		beanDefinition.setAutowireCandidate(true);
 		return beanDefinition;
 	}
@@ -162,20 +155,21 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 	/**
 	 * 只对添加了@GET注解的方法进行Rest代理
 	 */
-	private CallbackHelper getCallbackFilter(Class<?> cls,
-			final MyInvocationHandler handler) {
+	private CallbackHelper getCallbackFilter(Class<?> cls, final MyInvocationHandler handler) {
 		CallbackHelper callbackHelper = new CallbackHelper(cls, new Class[] {}) {
 			@Override
 			protected Object getCallback(Method method) {
-				System.out.println(method);
+				System.out.println("[cglib]CallbackHelper.getCallBack:" + method);
+
 				if (method.getAnnotation(GET.class) == null) {
 					return NoOp.INSTANCE;
-				}
-				else {
+				} else {
+					System.out.println("[cglib]CallbackHelper.getCallBack 代理该方法：" + method);
 					return handler;
 				}
 			}
 		};
+
 		return callbackHelper;
 	}
 
@@ -202,16 +196,22 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 	/**
 	 * Extract request info request info.
 	 *
-	 * @param method the method
-	 * @param args the args
+	 * @param method
+	 *            the method
+	 * @param args
+	 *            the args
 	 * @return the request info
 	 */
 	protected RequestInfo extractRequestInfo(Method method, Object[] args) {
-		RequestInfo info = new RequestInfo();
-
 		// TODO 目前只写了get请求，需要支持post等在这里增加
 		GET annotation = method.getAnnotation(GET.class);
 
+		if (annotation == null) {
+			throw new NullPointerException("当前被代理的方法" + method.getName() + "没有得到定义的注解信息！");
+		}
+
+		RequestInfo info = new RequestInfo();
+		
 		// url
 		String url = annotation.value();
 
@@ -254,8 +254,7 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 		return params;
 	}
 
-	private class MyInvocationHandler implements InvocationHandler,
-			org.springframework.cglib.proxy.InvocationHandler {
+	private class MyInvocationHandler implements InvocationHandler, org.springframework.cglib.proxy.InvocationHandler {
 
 		private RestInfo restInfo;
 
@@ -269,17 +268,20 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 		private IRequestHandle requestHandle;
 
 		private IRequestHandle getRequestHandler() {
+			// 得到处理类
 			if (this.requestHandle == null) {
-				this.requestHandle = defaultListableBeanFactory
-						.getBean(IRequestHandle.class);
+				this.requestHandle = defaultListableBeanFactory.getBean(IRequestHandle.class);
+
+				if (this.requestHandle == null) {
+					throw new NullPointerException("没有在spring的容器里面得到IRequestHandle的实现类");
+				}
 			}
 
 			return this.requestHandle;
 		}
 
 		@Override
-		public Object invoke(Object proxy, Method method, Object[] args)
-				throws Throwable {
+		public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
 			RequestInfo request = extractRequestInfo(method, args);
 			return getRequestHandler().handle(restInfo, request);
 		}
