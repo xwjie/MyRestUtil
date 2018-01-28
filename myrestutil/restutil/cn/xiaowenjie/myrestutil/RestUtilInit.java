@@ -1,9 +1,6 @@
 package cn.xiaowenjie.myrestutil;
 
-import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
-import java.util.LinkedHashMap;
 import java.util.Set;
 
 import org.reflections.Reflections;
@@ -16,14 +13,11 @@ import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.cglib.proxy.CallbackHelper;
 import org.springframework.cglib.proxy.NoOp;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 
-import cn.xiaowenjie.myrestutil.beans.RequestInfo;
 import cn.xiaowenjie.myrestutil.beans.RestInfo;
+import cn.xiaowenjie.myrestutil.handlers.MyInvocationHandler;
 import cn.xiaowenjie.myrestutil.http.GET;
-import cn.xiaowenjie.myrestutil.http.Param;
 import cn.xiaowenjie.myrestutil.http.Rest;
-import cn.xiaowenjie.myrestutil.interfaces.IRequestHandle;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -40,7 +34,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class RestUtilInit implements BeanFactoryPostProcessor {
 
-	private DefaultListableBeanFactory defaultListableBeanFactory;
+	DefaultListableBeanFactory defaultListableBeanFactory;
 
 	@Override
 	public void postProcessBeanFactory(ConfigurableListableBeanFactory configurableListableBeanFactory)
@@ -94,7 +88,7 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 	}
 
 	private MyInvocationHandler getMyInvocationHandler(RestInfo restInfo) {
-		return new MyInvocationHandler(restInfo);
+		return new MyInvocationHandler(restInfo, this.defaultListableBeanFactory);
 	}
 
 	private void registerBeanDefinition(Class<?> cls, BeanDefinition beanDefinition) {
@@ -159,8 +153,6 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 		CallbackHelper callbackHelper = new CallbackHelper(cls, new Class[] {}) {
 			@Override
 			protected Object getCallback(Method method) {
-				System.out.println("[cglib]CallbackHelper.getCallBack:" + method);
-
 				if (method.getAnnotation(GET.class) == null) {
 					return NoOp.INSTANCE;
 				} else {
@@ -185,105 +177,21 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 		return !cls.isInterface() || cls.getAnnotation(Rest.class).proxyClass();
 	}
 
+	/**
+	 * 从类上得到Rest的相关信息
+	 * 
+	 * @param cls
+	 * @return
+	 */
 	private RestInfo extractRestInfo(Class<?> cls) {
 		RestInfo restinfo = new RestInfo();
+
 		Rest annotation = cls.getAnnotation(Rest.class);
 		String host = annotation.value();
+
 		restinfo.setHost(host);
+
 		return restinfo;
 	}
 
-	/**
-	 * Extract request info request info.
-	 *
-	 * @param method
-	 *            the method
-	 * @param args
-	 *            the args
-	 * @return the request info
-	 */
-	protected RequestInfo extractRequestInfo(Method method, Object[] args) {
-		// TODO 目前只写了get请求，需要支持post等在这里增加
-		GET annotation = method.getAnnotation(GET.class);
-
-		if (annotation == null) {
-			throw new NullPointerException("当前被代理的方法" + method.getName() + "没有得到定义的注解信息！");
-		}
-
-		RequestInfo info = new RequestInfo();
-		
-		// url
-		String url = annotation.value();
-
-		// 没有配置路径取函数名称
-		if (StringUtils.isEmpty(url)) {
-			url = "/" + method.getName();
-		}
-
-		info.setUrl(url);
-
-		// 返回类型
-		info.setReturnType(method.getReturnType());
-
-		// 参数
-		LinkedHashMap<String, String> params = extractParams(method, args);
-		info.setParams(params);
-
-		return info;
-	}
-
-	private LinkedHashMap<String, String> extractParams(Method method, Object[] args) {
-		Parameter[] parameters = method.getParameters();
-
-		if (parameters.length == 0) {
-			return null;
-		}
-
-		LinkedHashMap<String, String> params = new LinkedHashMap<>();
-		for (int i = 0; i < parameters.length; i++) {
-			// FIXME 需要考虑变量名映射功能
-			// added by 李佳明：编译时必须加上 -g 参数才会生成方法参数名
-			// TODO parameters[i].getName() 居然得到的结果是arg0
-			Param param = parameters[i].getAnnotation(Param.class);
-
-			if (param != null) {
-				params.put(param.value(), String.valueOf(args[i]));
-			}
-		}
-
-		return params;
-	}
-
-	private class MyInvocationHandler implements InvocationHandler, org.springframework.cglib.proxy.InvocationHandler {
-
-		private RestInfo restInfo;
-
-		public MyInvocationHandler(RestInfo restInfo) {
-			this.restInfo = restInfo;
-		}
-
-		/**
-		 * 请求处理类（只获取一次）
-		 */
-		private IRequestHandle requestHandle;
-
-		private IRequestHandle getRequestHandler() {
-			// 得到处理类
-			if (this.requestHandle == null) {
-				this.requestHandle = defaultListableBeanFactory.getBean(IRequestHandle.class);
-
-				if (this.requestHandle == null) {
-					throw new NullPointerException("没有在spring的容器里面得到IRequestHandle的实现类");
-				}
-			}
-
-			return this.requestHandle;
-		}
-
-		@Override
-		public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-			RequestInfo request = extractRequestInfo(method, args);
-			return getRequestHandler().handle(restInfo, request);
-		}
-	}
 }
