@@ -13,7 +13,7 @@ public class TestController {
 	@GetMapping("/get1")
 	public ResultBean get1() {
 		System.out.println("TestController.get1()");
-		return new ResultBean("get1 success!");
+		return new ResultBean("get1 success!：" + System.currentTimeMillis());
 	}
 
 	@GetMapping("/get2")

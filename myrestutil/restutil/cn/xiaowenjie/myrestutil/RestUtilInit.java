@@ -67,7 +67,7 @@ public class RestUtilInit implements BeanFactoryPostProcessor {
 
 		// 如果不是JUnit启动容器的，可以使用自动获取路径。JUnit启动的，只能使用硬编码或者配置文件
 		if (!StackTraceHelper.isRunByJunit(StackTraceHelper.getMainThreadStackTraceElements())) {
-			StackTraceHelper.getBasePackageByMain(2);
+			baseScanPackage = StackTraceHelper.getBasePackageByMain(2);
 		}
 
 		return baseScanPackage;
