@@ -18,6 +18,7 @@ public abstract class SomeService {
 
 	/**
 	 * 在类里面增加一个抽象的http接口调用方法
+	 * 
 	 * @return
 	 */
 	@GET("/get2")
@@ -30,7 +31,11 @@ public abstract class SomeService {
 	 */
 	public String doSomething() {
 		System.out.println("执行一些业务代码");
+
 		// 这里是一些业务代码，中间调用了其他系统的http接口。
-		return "调用接口返回结果：" + get2("支持直接在类里面注入使用").getData();
+		String str = "调用接口返回结果：" + get2("支持直接在类里面注入使用").getData();
+
+		System.out.println(str);
+		return str;
 	}
 }

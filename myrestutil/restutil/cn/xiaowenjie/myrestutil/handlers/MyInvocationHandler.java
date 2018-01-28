@@ -14,17 +14,25 @@ import cn.xiaowenjie.myrestutil.http.GET;
 import cn.xiaowenjie.myrestutil.http.Param;
 import cn.xiaowenjie.myrestutil.interfaces.IRequestHandle;
 
+/**
+ * jdk和cglib都会调用的代理处理类。所以实现了jdk和cglib的2个接口
+ * 
+ * @author 肖文杰 https://github.com/xwjie/MyRestUtil
+ * @author 李佳明
+ */
 public class MyInvocationHandler implements InvocationHandler, org.springframework.cglib.proxy.InvocationHandler {
 
 	/**
-	 * 
+	 * 根据【类】上面提取出来的的服务器信息
 	 */
-	private RestInfo restInfo;
+	private final RestInfo restInfo;
 
 	/**
-	 * spring的beanFactory。为了在运行时得到实际上处理了的bean
+	 * spring的beanFactory。
+	 * 
+	 * 为了在运行时得到实际的网络请求处理类的bean
 	 */
-	private BeanFactory beanFactory;
+	private final BeanFactory beanFactory;
 
 	public MyInvocationHandler(RestInfo restInfo, BeanFactory beanFactory) {
 		this.restInfo = restInfo;
