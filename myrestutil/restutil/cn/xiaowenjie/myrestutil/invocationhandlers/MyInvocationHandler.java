@@ -1,4 +1,4 @@
-package cn.xiaowenjie.myrestutil.handlers;
+package cn.xiaowenjie.myrestutil.invocationhandlers;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;

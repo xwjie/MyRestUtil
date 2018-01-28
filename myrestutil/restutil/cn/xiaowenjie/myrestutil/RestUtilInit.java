@@ -15,9 +15,9 @@ import org.springframework.cglib.proxy.NoOp;
 import org.springframework.stereotype.Component;
 
 import cn.xiaowenjie.myrestutil.beans.RestInfo;
-import cn.xiaowenjie.myrestutil.handlers.MyInvocationHandler;
 import cn.xiaowenjie.myrestutil.http.GET;
 import cn.xiaowenjie.myrestutil.http.Rest;
+import cn.xiaowenjie.myrestutil.invocationhandlers.MyInvocationHandler;
 import lombok.extern.slf4j.Slf4j;
 
 /**

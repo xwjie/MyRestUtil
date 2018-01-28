@@ -1,4 +1,4 @@
-package cn.xiaowenjie.myrestutil;
+package cn.xiaowenjie.myrestutil.requesthandlers;
 
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -20,7 +20,7 @@ import cn.xiaowenjie.myrestutil.interfaces.IRequestHandle;
  * @date 2017.4.30
  */
 @Component
-public class RestTemplateRequestHandle implements IRequestHandle {
+public class DefaultRestTemplateRequestHandler implements IRequestHandle {
 
 	@Autowired
 	RestTemplate rest;
