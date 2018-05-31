@@ -25,6 +25,7 @@ public class JDKProxyCreater implements ProxyCreater {
     public JDKProxyCreater(String proxyClassName, Class<?>[] interfaces, InvocationHandler invocationHandler) throws NoSuchMethodException {
         this.proxyClassName = proxyClassName;
         this.interfaces = interfaces;
+        this.invocationHandler = invocationHandler;
         this.proxyClass = Proxy.getProxyClass(JDKProxyCreater.class.getClassLoader(), this.interfaces);
         this.proxyConstructor = this.proxyClass.getConstructor(InvocationHandler.class);
     }
